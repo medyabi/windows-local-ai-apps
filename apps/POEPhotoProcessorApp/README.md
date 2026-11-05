@@ -35,13 +35,75 @@ To make it fully offline you would vendor those libraries and models into `www/`
 | `www/index.html` | The whole app (≈80 KB, HTML+CSS+JS): `handleFiles`, `readExif`, `loadModels`, `loadRef`, `processAll` / `processOne`, `getCaption`, `reverseGeocode`, `downloadZip`. When opened without the native shell it falls back to a Foundry Local HTTP endpoint. |
 | `Package.appxmanifest` | Needs both device families (`Windows.Universal`, `Windows.Desktop`) for the AI API. |
 
-## Deploy
+## Step-by-step deployment
+
+Everything below is copy-paste PowerShell on a Windows 11 PC. Replace nothing: the repository owner is `medyabi`.
+
+**1. Check the PC and install the tools (once)**
+
+- Windows 11 build 22621 or later, x64 (`winver`). For the AI features you need a Copilot+ PC (NPU); otherwise the app starts but reports the model as unavailable.
 
 ```powershell
-.\scripts\build-app.ps1 -App POEPhotoProcessorApp -Install
+winget install --id Microsoft.DotNet.SDK.8
+winget install --id Git.Git
+winget install --id GitHub.cli
 ```
 
-Full guide: [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md). Package name `MohamedDYABI.POEPhotoProcessor`. The development signing key (`*_TemporaryKey.pfx`) is deliberately not in this repository.
+**2. Sign in to GitHub and clone** (the repository is private, so the account must have access)
+
+```powershell
+gh auth login
+git clone https://github.com/medyabi/windows-local-ai-apps.git
+cd windows-local-ai-apps
+```
+
+**3. Build the signed package** (about 30 s to 2 min; the first build also downloads NuGet packages and needs internet)
+
+```powershell
+.\scripts\build-app.ps1 -App POEPhotoProcessorApp
+```
+
+It creates a self-signed certificate if needed and writes two files: `dist\POEPhotoProcessorApp\POEPhotoProcessorApp_1.0.0.0_x64.msix` and `dist\POEPhotoProcessorApp\POEPhotoProcessorApp.cer`. A warning about `mspdbcmf.exe` is harmless.
+
+**4. Trust the certificate** (PowerShell **as administrator**, once per PC)
+
+```powershell
+Import-Certificate -FilePath .\dist\POEPhotoProcessorApp\POEPhotoProcessorApp.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+```
+
+**5. Install**
+
+```powershell
+Add-AppxPackage -Path .\dist\POEPhotoProcessorApp\POEPhotoProcessorApp_1.0.0.0_x64.msix
+```
+
+**6. Launch** it from the Start menu (**POE Photo Processor**) or:
+
+```powershell
+$p = Get-AppxPackage *POEPhotoProcessor*
+Start-Process "shell:AppsFolder\$($p.PackageFamilyName)!App"
+```
+
+**7. First launch**
+
+- The status pill shows the on-device model state. The first time, Windows may need to prepare the model (a few minutes, may need Windows Update).
+- **This app needs internet**: it loads `face-api.js` and its models from a CDN and geocodes GPS coordinates through OpenStreetMap. Without internet, face detection does not start.
+- There are no sample photos in the repository: bring your own, plus a selfie to exclude your own face from blurring.
+
+**8. If something fails**
+
+```powershell
+$p = Get-AppxPackage *POEPhotoProcessor*
+notepad "$env:LOCALAPPDATA\Packages\$($p.PackageFamilyName)\LocalState\bridge.log"
+```
+
+Common errors and fixes are in [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md#troubleshooting).
+
+**9. Uninstall** (also removes the app's data)
+
+```powershell
+Get-AppxPackage *POEPhotoProcessor* | Remove-AppxPackage
+```
 
 ## Try it
 

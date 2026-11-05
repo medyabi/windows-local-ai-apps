@@ -32,13 +32,74 @@ flowchart LR
 | `www/sample-transactions.csv`, `www/customer-profiles.csv`, `www/policies/*.pdf` | Synthetic data loaded by `loadDemoDataset` / `loadDemoPolicies` (AML, KYC, transaction-monitoring and investigation-handbook policies). |
 | `sample-data/` | The same kind of data as standalone files. |
 
-## Deploy
+## Step-by-step deployment
+
+Everything below is copy-paste PowerShell on a Windows 11 PC. Replace nothing: the repository owner is `medyabi`.
+
+**1. Check the PC and install the tools (once)**
+
+- Windows 11 build 22621 or later, x64 (`winver`). For the AI features you need a Copilot+ PC (NPU); otherwise the app starts but reports the model as unavailable.
 
 ```powershell
-.\scripts\build-app.ps1 -App FraudInvestigatorApp -Install
+winget install --id Microsoft.DotNet.SDK.8
+winget install --id Git.Git
+winget install --id GitHub.cli
 ```
 
-Full guide: [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md). Package name `MohamedDYABI.FraudInvestigator`.
+**2. Sign in to GitHub and clone** (the repository is private, so the account must have access)
+
+```powershell
+gh auth login
+git clone https://github.com/medyabi/windows-local-ai-apps.git
+cd windows-local-ai-apps
+```
+
+**3. Build the signed package** (about 30 s to 2 min; the first build also downloads NuGet packages and needs internet)
+
+```powershell
+.\scripts\build-app.ps1 -App FraudInvestigatorApp
+```
+
+It creates a self-signed certificate if needed and writes two files: `dist\FraudInvestigatorApp\FraudInvestigatorApp_1.0.0.0_x64.msix` and `dist\FraudInvestigatorApp\FraudInvestigatorApp.cer`. A warning about `mspdbcmf.exe` is harmless.
+
+**4. Trust the certificate** (PowerShell **as administrator**, once per PC)
+
+```powershell
+Import-Certificate -FilePath .\dist\FraudInvestigatorApp\FraudInvestigatorApp.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+```
+
+**5. Install**
+
+```powershell
+Add-AppxPackage -Path .\dist\FraudInvestigatorApp\FraudInvestigatorApp_1.0.0.0_x64.msix
+```
+
+**6. Launch** it from the Start menu (**Local Fraud Investigator**) or:
+
+```powershell
+$p = Get-AppxPackage *FraudInvestigator*
+Start-Process "shell:AppsFolder\$($p.PackageFamilyName)!App"
+```
+
+**7. First launch**
+
+- The status pill shows the on-device model state. The first time, Windows may need to prepare the model (a few minutes, may need Windows Update).
+- Dashboard: load the demo dataset. Policy Library: load the demo policies, then wait a few seconds for the asynchronous index before asking policy questions.
+
+**8. If something fails**
+
+```powershell
+$p = Get-AppxPackage *FraudInvestigator*
+notepad "$env:LOCALAPPDATA\Packages\$($p.PackageFamilyName)\LocalState\bridge.log"
+```
+
+Common errors and fixes are in [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md#troubleshooting).
+
+**9. Uninstall** (also removes the app's data)
+
+```powershell
+Get-AppxPackage *FraudInvestigator* | Remove-AppxPackage
+```
 
 ## Try it
 

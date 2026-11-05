@@ -69,7 +69,7 @@ winget install --id Microsoft.DotNet.SDK.8
 winget install --id Git.Git
 
 # 2. code
-git clone https://github.com/<owner>/windows-local-ai-apps.git
+git clone https://github.com/medyabi/windows-local-ai-apps.git
 cd windows-local-ai-apps
 
 # 3. build a signed MSIX with a self-signed certificate that the script creates for you

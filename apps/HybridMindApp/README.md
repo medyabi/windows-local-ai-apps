@@ -37,13 +37,74 @@ Everything in LocalMind (chat, files, skills, images; see its README), plus:
 | `www/js/agent.js`, `agent-ui.js`, `agent-menu.js` | Agent loop, Settings → Agent (folders, working folder, limits), engine chooser. |
 | `dev/` | Test scripts. E-mail addresses, the "API key" and the card number in them are **fake strings** used to test redaction. |
 
-## Deploy
+## Step-by-step deployment
+
+Everything below is copy-paste PowerShell on a Windows 11 PC. Replace nothing: the repository owner is `medyabi`.
+
+**1. Check the PC and install the tools (once)**
+
+- Windows 11 build 22621 or later, x64 (`winver`). For the AI features you need a Copilot+ PC (NPU); otherwise the app starts but reports the model as unavailable.
 
 ```powershell
-.\scripts\build-app.ps1 -App HybridMindApp -Install
+winget install --id Microsoft.DotNet.SDK.8
+winget install --id Git.Git
+winget install --id GitHub.cli
 ```
 
-Full guide: [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md). Package name `Dyabi.HybridMind`. No endpoint or key is included in this repository.
+**2. Sign in to GitHub and clone** (the repository is private, so the account must have access)
+
+```powershell
+gh auth login
+git clone https://github.com/medyabi/windows-local-ai-apps.git
+cd windows-local-ai-apps
+```
+
+**3. Build the signed package** (about 30 s to 2 min; the first build also downloads NuGet packages and needs internet)
+
+```powershell
+.\scripts\build-app.ps1 -App HybridMindApp
+```
+
+It creates a self-signed certificate if needed and writes two files: `dist\HybridMindApp\HybridMindApp_1.2.0.0_x64.msix` and `dist\HybridMindApp\HybridMindApp.cer`. A warning about `mspdbcmf.exe` is harmless.
+
+**4. Trust the certificate** (PowerShell **as administrator**, once per PC)
+
+```powershell
+Import-Certificate -FilePath .\dist\HybridMindApp\HybridMindApp.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+```
+
+**5. Install**
+
+```powershell
+Add-AppxPackage -Path .\dist\HybridMindApp\HybridMindApp_1.2.0.0_x64.msix
+```
+
+**6. Launch** it from the Start menu (**HybridMind by Dyabi**) or:
+
+```powershell
+$p = Get-AppxPackage Dyabi.HybridMind
+Start-Process "shell:AppsFolder\$($p.PackageFamilyName)!App"
+```
+
+**7. First launch**
+
+- The status pill shows the on-device model state. The first time, Windows may need to prepare the model (a few minutes, may need Windows Update).
+- Without cloud settings it behaves like LocalMind. To use the cloud route, open Settings, Cloud, enter **your own** endpoint, deployment and key, and press Test connection. The cloud routing was tested against a mock server only.
+
+**8. If something fails**
+
+```powershell
+$p = Get-AppxPackage Dyabi.HybridMind
+notepad "$env:LOCALAPPDATA\Packages\$($p.PackageFamilyName)\LocalState\bridge.log"
+```
+
+Common errors and fixes are in [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md#troubleshooting).
+
+**9. Uninstall** (also removes the app's data)
+
+```powershell
+Get-AppxPackage Dyabi.HybridMind | Remove-AppxPackage
+```
 
 ## Try it
 

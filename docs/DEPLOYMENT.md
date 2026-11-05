@@ -43,7 +43,7 @@ git --version
 ## 3. Get the code
 
 ```powershell
-git clone https://github.com/<owner>/windows-local-ai-apps.git
+git clone https://github.com/medyabi/windows-local-ai-apps.git
 cd windows-local-ai-apps
 ```
 

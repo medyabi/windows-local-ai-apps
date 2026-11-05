@@ -31,13 +31,75 @@ flowchart LR
 | `www/app.js` | Logic (≈48 KB): prompts, validation, role/candidate rendering, duplicate check, copilot context builders. |
 | `sample-test-documents/` | One job description and two synthetic résumés, with a README of expected results. |
 
-## Deploy
+## Step-by-step deployment
+
+Everything below is copy-paste PowerShell on a Windows 11 PC. Replace nothing: the repository owner is `medyabi`.
+
+**1. Check the PC and install the tools (once)**
+
+- Windows 11 build 22621 or later, x64 (`winver`). For the AI features you need a Copilot+ PC (NPU); otherwise the app starts but reports the model as unavailable.
 
 ```powershell
-.\scripts\build-app.ps1 -App HRRecruiterApp -Install
+winget install --id Microsoft.DotNet.SDK.8
+winget install --id Git.Git
+winget install --id GitHub.cli
 ```
 
-Full guide: [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md). Package name `MohamedDYABI.HRRecruiterAgent`.
+**2. Sign in to GitHub and clone** (the repository is private, so the account must have access)
+
+```powershell
+gh auth login
+git clone https://github.com/medyabi/windows-local-ai-apps.git
+cd windows-local-ai-apps
+```
+
+**3. Build the signed package** (about 30 s to 2 min; the first build also downloads NuGet packages and needs internet)
+
+```powershell
+.\scripts\build-app.ps1 -App HRRecruiterApp
+```
+
+It creates a self-signed certificate if needed and writes two files: `dist\HRRecruiterApp\HRRecruiterApp_1.0.0.0_x64.msix` and `dist\HRRecruiterApp\HRRecruiterApp.cer`. A warning about `mspdbcmf.exe` is harmless.
+
+**4. Trust the certificate** (PowerShell **as administrator**, once per PC)
+
+```powershell
+Import-Certificate -FilePath .\dist\HRRecruiterApp\HRRecruiterApp.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+```
+
+**5. Install**
+
+```powershell
+Add-AppxPackage -Path .\dist\HRRecruiterApp\HRRecruiterApp_1.0.0.0_x64.msix
+```
+
+**6. Launch** it from the Start menu (**HR Recruiter Agent**) or:
+
+```powershell
+$p = Get-AppxPackage *HRRecruiterAgent*
+Start-Process "shell:AppsFolder\$($p.PackageFamilyName)!App"
+```
+
+**7. First launch**
+
+- The status pill shows the on-device model state. The first time, Windows may need to prepare the model (a few minutes, may need Windows Update).
+- Use the files in `sample-test-documents/`.
+- Only the "fetch job description from URL" feature needs internet.
+
+**8. If something fails**
+
+```powershell
+$p = Get-AppxPackage *HRRecruiterAgent*
+notepad "$env:LOCALAPPDATA\Packages\$($p.PackageFamilyName)\LocalState\bridge.log"
+```
+
+Common errors and fixes are in [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md#troubleshooting).
+
+**9. Uninstall** (also removes the app's data)
+
+```powershell
+Get-AppxPackage *HRRecruiterAgent* | Remove-AppxPackage
+```
 
 ## Try it
 

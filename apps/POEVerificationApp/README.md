@@ -29,13 +29,74 @@ flowchart LR
 | `www/app.js` | Logic (≈39 KB): extraction prompts and validation, matrix, exposure/risk, reuse search, supplier stats, copilot. |
 | `manual-test-documents/` | Six synthetic scenarios + `generate.py` + README: clean, quantity over-billing, price inflation, execution shortfall, back-dated evidence, photo discrepancy. |
 
-## Deploy
+## Step-by-step deployment
+
+Everything below is copy-paste PowerShell on a Windows 11 PC. Replace nothing: the repository owner is `medyabi`.
+
+**1. Check the PC and install the tools (once)**
+
+- Windows 11 build 22621 or later, x64 (`winver`). For the AI features you need a Copilot+ PC (NPU); otherwise the app starts but reports the model as unavailable.
 
 ```powershell
-.\scripts\build-app.ps1 -App POEVerificationApp -Install
+winget install --id Microsoft.DotNet.SDK.8
+winget install --id Git.Git
+winget install --id GitHub.cli
 ```
 
-Full guide: [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md). Package name `MohamedDYABI.POEVerification`.
+**2. Sign in to GitHub and clone** (the repository is private, so the account must have access)
+
+```powershell
+gh auth login
+git clone https://github.com/medyabi/windows-local-ai-apps.git
+cd windows-local-ai-apps
+```
+
+**3. Build the signed package** (about 30 s to 2 min; the first build also downloads NuGet packages and needs internet)
+
+```powershell
+.\scripts\build-app.ps1 -App POEVerificationApp
+```
+
+It creates a self-signed certificate if needed and writes two files: `dist\POEVerificationApp\POEVerificationApp_1.0.0.0_x64.msix` and `dist\POEVerificationApp\POEVerificationApp.cer`. A warning about `mspdbcmf.exe` is harmless.
+
+**4. Trust the certificate** (PowerShell **as administrator**, once per PC)
+
+```powershell
+Import-Certificate -FilePath .\dist\POEVerificationApp\POEVerificationApp.cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople
+```
+
+**5. Install**
+
+```powershell
+Add-AppxPackage -Path .\dist\POEVerificationApp\POEVerificationApp_1.0.0.0_x64.msix
+```
+
+**6. Launch** it from the Start menu (**POE Verification Analyst**) or:
+
+```powershell
+$p = Get-AppxPackage *POEVerification*
+Start-Process "shell:AppsFolder\$($p.PackageFamilyName)!App"
+```
+
+**7. First launch**
+
+- The status pill shows the on-device model state. The first time, Windows may need to prepare the model (a few minutes, may need Windows Update).
+- Use the scenario folders in `manual-test-documents/` (supplier names are listed in its README). Extraction takes about 5-15 s per document.
+
+**8. If something fails**
+
+```powershell
+$p = Get-AppxPackage *POEVerification*
+notepad "$env:LOCALAPPDATA\Packages\$($p.PackageFamilyName)\LocalState\bridge.log"
+```
+
+Common errors and fixes are in [`docs/DEPLOYMENT.md`](../../docs/DEPLOYMENT.md#troubleshooting).
+
+**9. Uninstall** (also removes the app's data)
+
+```powershell
+Get-AppxPackage *POEVerification* | Remove-AppxPackage
+```
 
 ## Try it
 
