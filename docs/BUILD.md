@@ -58,4 +58,5 @@ Start-Process "shell:AppsFolder\<PackageFamilyName>!App"
 
 - `UglyToad.PdfPig` is pinned to a prerelease in the apps that read PDFs (at the time of building, no stable version matched); check NuGet for a newer stable one.
 - The web UI is plain HTML/JS in each app's `www/` folder, loaded by the WebView2 shell; most UI changes do not touch the C# code.
-- Only HybridMed and HybridMind have a cloud stage, and both need an endpoint (and key) that **you** provide; the other apps do not call the network.
+- Only HybridMed and HybridMind have a cloud stage, and both need an endpoint (and key) that **you** provide. Some other apps also make small network requests (fonts, a CDN, geocoding, a job-posting URL): see the network table in the main README.
+- [`../scripts/build-app.ps1`](../scripts/build-app.ps1) automates steps 2–4 (certificate, patching a temporary copy, build); the step-by-step guide is [`DEPLOYMENT.md`](DEPLOYMENT.md).
