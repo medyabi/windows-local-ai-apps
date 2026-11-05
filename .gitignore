@@ -1,0 +1,37 @@
+# build output
+bin/
+obj/
+AppPackages/
+dist/
+BundleArtifacts/
+*.msix
+*.msixbundle
+*.appx
+*.zip
+
+# signing material and secrets: never commit
+*.pfx
+*.p12
+*.snk
+*.pem
+*.cer
+.env
+.env.*
+!.env.example
+secrets.json
+appsettings.Development.json
+
+# runtime data written by the apps and the self-tests
+LocalState/
+bridge.log
+selftest.json
+*.log
+
+# tooling
+.vs/
+.vscode/
+*.user
+node_modules/
+TestResults/
+
+mock_log.jsonl

@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HybridMed — On-Device AI + Cloud Triage</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0d0f0e;--bg2:#141614;--bg3:#1a1d1a;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#e8ebe8;--text2:#8a9088;--text3:#555c54;
+  --accent:#4ade80;--accent2:#22c55e;--accent-dim:rgba(74,222,128,0.12);--accent-dim2:rgba(74,222,128,0.06);
+  --blue:#60a5fa;--blue-dim:rgba(96,165,250,0.12);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.12);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.12);
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --r:10px;--r2:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:52px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100;}
+.nav-brand{display:flex;align-items:center;gap:10px;}
+.nav-logo{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.nav-logo svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;}
+.nav-title{font-size:15px;font-weight:500;letter-spacing:-0.02em;}
+.nav-title span{color:var(--accent);}
+.nav-pills{display:flex;gap:6px;}
+.pill{font-size:11px;font-family:var(--mono);padding:3px 9px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);background:var(--bg2);}
+.pill.local{border-color:rgba(74,222,128,0.3);color:var(--accent);background:var(--accent-dim2);}
+.pill.cloud{border-color:rgba(96,165,250,0.3);color:var(--blue);background:var(--blue-dim);}
+
+.app{flex:1;display:grid;grid-template-columns:1fr 340px;}
+.left{padding:28px;border-right:1px solid var(--border);overflow-y:auto;}
+.right{padding:24px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+
+.sh{font-size:10px;font-family:var(--mono);letter-spacing:0.1em;color:var(--text3);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.sh::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.upload-zone{border:1px dashed var(--border2);border-radius:var(--r);background:var(--bg2);padding:32px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:20px;position:relative;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-dim2);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.upload-icon{width:40px;height:40px;background:var(--bg3);border-radius:10px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;}
+.upload-icon svg{width:20px;height:20px;fill:none;stroke:var(--text2);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+.upload-title{font-size:14px;font-weight:500;margin-bottom:4px;}
+.upload-sub{font-size:12px;color:var(--text2);}
+.upload-formats{margin-top:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.fmt-tag{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:3px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+
+.file-loaded{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:20px;display:none;animation:fadeIn 0.3s ease;}
+.file-loaded.visible{display:flex;align-items:center;gap:12px;}
+.file-icon{width:36px;height:36px;background:var(--accent-dim);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.file-icon svg{width:18px;height:18px;fill:none;stroke:var(--accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.file-meta{flex:1;min-width:0;}
+.file-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.file-size{font-size:11px;color:var(--text2);margin-top:2px;}
+.file-clear{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;line-height:1;padding:4px;transition:color 0.15s;}
+.file-clear:hover{color:var(--red);}
+
+.patient-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:20px;display:none;}
+.patient-card.visible{display:block;animation:fadeIn 0.3s ease;}
+.patient-header{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.patient-avatar{width:38px;height:38px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:var(--accent);flex-shrink:0;}
+.patient-name{font-size:14px;font-weight:500;}
+.patient-dob{font-size:11px;color:var(--text2);margin-top:2px;}
+.patient-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.patient-field{background:var(--bg3);border-radius:6px;padding:8px 10px;}
+.pf-label{font-size:10px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}
+.pf-value{font-size:12px;color:var(--text);}
+
+.symptoms-area{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:20px;}
+.sym-label{font-size:11px;font-family:var(--mono);color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em;}
+.sym-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-size:13px;font-family:var(--sans);color:var(--text);resize:none;min-height:72px;transition:border-color 0.15s;}
+.sym-input:focus{outline:none;border-color:var(--accent);}
+.sym-input::placeholder{color:var(--text3);}
+
+.raw-preview{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:20px;display:none;}
+.raw-preview.visible{display:block;animation:fadeIn 0.3s ease;}
+.raw-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);}
+.raw-header-left{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;}
+.lock-badge{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:3px;background:var(--amber-dim);color:var(--amber);border:1px solid rgba(251,191,36,0.25);}
+.raw-content{padding:12px 14px;font-family:var(--mono);font-size:11px;color:var(--text2);max-height:140px;overflow-y:auto;line-height:1.7;white-space:pre-wrap;}
+
+.privacy-note{display:flex;gap:8px;align-items:flex-start;background:var(--amber-dim);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:#d4a017;line-height:1.5;margin-bottom:16px;}
+
+.chat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:20px;display:none;overflow:hidden;}
+.chat-card.visible{display:block;animation:fadeIn 0.3s ease;}
+.chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);}
+.chat-header-left{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;}
+.chat-messages{max-height:280px;min-height:60px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.chat-empty{font-size:12px;color:var(--text3);text-align:center;padding:10px 0;}
+.chat-msg{display:flex;flex-direction:column;gap:3px;max-width:88%;}
+.chat-msg.user{align-self:flex-end;align-items:flex-end;}
+.chat-msg.assistant{align-self:flex-start;align-items:flex-start;}
+.chat-bubble{font-size:12.5px;line-height:1.6;padding:8px 12px;border-radius:10px;white-space:pre-wrap;}
+.chat-msg.user .chat-bubble{background:var(--accent-dim);color:var(--text);border:1px solid rgba(74,222,128,0.25);}
+.chat-msg.assistant .chat-bubble{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.chat-msg.assistant.thinking .chat-bubble{color:var(--text2);font-style:italic;}
+.chat-msg.error .chat-bubble{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,0.25);}
+.chat-input-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12.5px;font-family:var(--sans);color:var(--text);resize:none;min-height:20px;max-height:80px;}
+.chat-input:focus{outline:none;border-color:var(--accent);}
+.chat-input::placeholder{color:var(--text3);}
+.chat-send{background:var(--accent);color:#000;border:none;border-radius:6px;padding:0 14px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.15s;}
+.chat-send:hover:not(:disabled){background:var(--accent2);}
+.chat-send:disabled{opacity:0.35;cursor:not-allowed;}
+
+.run-btn{width:100%;padding:13px;background:var(--accent);color:#000;border:none;border-radius:var(--r);font-size:14px;font-weight:500;font-family:var(--sans);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-0.01em;}
+.run-btn:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px);}
+.run-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;}
+.run-btn svg{width:16px;height:16px;}
+
+.demo-btn{background:none;border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:11px;font-family:var(--mono);color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.demo-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.results{margin-top:24px;display:none;}
+.results.visible{display:block;animation:fadeIn 0.4s ease;}
+
+.lab-results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-bottom:20px;}
+.lab-result-item{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;transition:border-color 0.15s;}
+.lab-result-item.high{border-left:3px solid var(--red);}
+.lab-result-item.moderate{border-left:3px solid var(--amber);}
+.lab-result-item.mild{border-left:3px solid var(--blue);}
+.lab-result-item.normal{border-left:3px solid var(--accent);}
+.lri-test{font-size:11px;font-family:var(--mono);color:var(--text2);margin-bottom:4px;}
+.lri-value{font-size:18px;font-weight:500;letter-spacing:-0.02em;}
+.lri-unit{font-size:11px;color:var(--text3);font-family:var(--mono);}
+.lri-ref{font-size:10px;color:var(--text3);margin-top:4px;font-family:var(--mono);}
+.sev-chip{display:inline-block;font-size:9px;font-family:var(--mono);padding:2px 6px;border-radius:3px;text-transform:uppercase;margin-top:6px;}
+.sev-high{background:var(--red-dim);color:var(--red);}
+.sev-moderate{background:var(--amber-dim);color:var(--amber);}
+.sev-mild{background:var(--blue-dim);color:var(--blue);}
+.sev-normal{background:var(--accent-dim);color:var(--accent);}
+
+.triage-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;}
+.triage-box.urgent{border-color:rgba(248,113,113,0.4);background:rgba(248,113,113,0.05);}
+.triage-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.triage-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot-urgent{background:var(--red);box-shadow:0 0 8px var(--red);animation:pulse 1.5s infinite;}
+.dot-normal{background:var(--accent);}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.6;transform:scale(1.3)}}
+.triage-label{font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.08em;}
+.triage-text{font-size:14px;line-height:1.75;color:var(--text);white-space:pre-wrap;}
+.triage-disclaimer{font-size:11px;color:var(--text3);margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-family:var(--mono);}
+
+.lab-assessment-box{font-size:12px;color:var(--text2);margin-bottom:12px;padding:10px 12px;background:var(--bg2);border-radius:8px;border:1px solid var(--border);font-family:var(--mono);}
+
+.pipeline{display:flex;flex-direction:column;}
+.pipe-step{display:flex;gap:12px;position:relative;}
+.pipe-step:not(:last-child)::after{content:'';position:absolute;left:15px;top:32px;bottom:-14px;width:1px;background:var(--border);z-index:0;}
+.pipe-step+.pipe-step{margin-top:14px;}
+.pipe-node{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;transition:all 0.35s ease;font-size:13px;}
+.pipe-node.active{background:var(--accent-dim);border-color:var(--accent);animation:nodeGlow 1s ease-in-out infinite alternate;}
+.pipe-node.done{background:var(--accent-dim);border-color:var(--accent2);}
+.pipe-node.error{background:var(--red-dim);border-color:var(--red);}
+@keyframes nodeGlow{from{box-shadow:0 0 0 0 transparent;}to{box-shadow:0 0 10px 2px rgba(74,222,128,0.2);}}
+.pipe-content{flex:1;padding-bottom:8px;}
+.pipe-title{font-size:13px;font-weight:500;margin-bottom:2px;display:flex;align-items:center;gap:6px;}
+.pipe-sub{font-size:11px;color:var(--text2);line-height:1.5;}
+.pipe-badge{font-size:9px;font-family:var(--mono);padding:2px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:0.05em;}
+.pb-local{background:var(--accent-dim);color:var(--accent);}
+.pb-cloud{background:var(--blue-dim);color:var(--blue);}
+.pb-lock{background:var(--amber-dim);color:var(--amber);}
+.pipe-log{margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--text2);max-height:90px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;display:none;}
+.pipe-log.visible{display:block;animation:fadeIn 0.2s ease;}
+.log-ok{color:var(--accent);}
+.log-err{color:var(--red);}
+.log-dim{color:var(--text3);}
+
+.config-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.config-title{padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;}
+.config-fields{padding:14px;display:flex;flex-direction:column;gap:10px;}
+.cfg-field{display:flex;flex-direction:column;gap:4px;}
+.cfg-label{font-size:10px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
+.cfg-input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:var(--mono);color:var(--text);transition:border-color 0.15s;}
+.cfg-input:focus{outline:none;border-color:var(--accent);}
+.cfg-input::placeholder{color:var(--text3);}
+.status-row{display:flex;align-items:center;gap:6px;padding:6px 0;font-size:12px;}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.sdot-green{background:var(--accent);box-shadow:0 0 4px var(--accent);}
+.sdot-gray{background:var(--text3);}
+.sdot-red{background:var(--red);}
+.check-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:11px;font-family:var(--mono);color:var(--text2);cursor:pointer;transition:all 0.15s;width:100%;}
+.check-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.err-box{background:var(--red-dim);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--red);line-height:1.6;white-space:pre-wrap;display:none;margin-top:12px;font-family:var(--mono);}
+.err-box.visible{display:block;animation:fadeIn 0.2s ease;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.spin{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <span class="nav-title">Hybrid<span>Med</span></span>
+  </div>
+  <div class="nav-pills">
+    <span class="pill local" id="pillLocalModel">On device AI model</span>
+    <span class="pill cloud">Microsoft foundry model</span>
+    <span class="pill">hybrid workflow</span>
+  </div>
+</nav>
+
+<div class="app">
+<div class="left">
+
+  <div class="sh">Patient file</div>
+
+  <div style="display:flex;gap:8px;margin-bottom:12px;">
+    <button class="demo-btn" onclick="loadDemo()">&#9654; Load demo patient</button>
+    <span style="font-size:11px;color:var(--text3);align-self:center;">or upload a file below</span>
+  </div>
+
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".txt,.pdf,.json,.csv" onchange="handleFile(this.files[0])">
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <div class="upload-title">Drop patient file here</div>
+    <div class="upload-sub">Lab reports, discharge summaries, clinical notes</div>
+    <div class="upload-formats"><span class="fmt-tag">.txt</span><span class="fmt-tag">.pdf</span><span class="fmt-tag">.json</span><span class="fmt-tag">.csv</span></div>
+  </div>
+
+  <div class="file-loaded" id="fileLoaded">
+    <div class="file-icon">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+    </div>
+    <div class="file-meta">
+      <div class="file-name" id="fileName">—</div>
+      <div class="file-size" id="fileSize">—</div>
+    </div>
+    <button class="file-clear" onclick="clearFile()">&#x2715;</button>
+  </div>
+
+  <div class="patient-card" id="patientCard">
+    <div class="patient-header">
+      <div class="patient-avatar" id="patientInitials">?</div>
+      <div>
+        <div class="patient-name" id="patientName">—</div>
+        <div class="patient-dob" id="patientDob">—</div>
+      </div>
+    </div>
+    <div class="patient-grid" id="patientGrid"></div>
+  </div>
+
+  <div class="raw-preview" id="rawPreview">
+    <div class="raw-header">
+      <div class="raw-header-left">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Raw lab data <span class="lock-badge">stays on device</span>
+      </div>
+      <span style="font-size:11px;color:var(--text3);font-family:var(--mono);" id="rawLineCount"></span>
+    </div>
+    <div class="raw-content" id="rawContent"></div>
+  </div>
+
+  <div class="chat-card" id="chatCard">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Ask about this report <span class="lock-badge">stays on device</span>
+      </div>
+      <button class="file-clear" onclick="clearChat()" title="Clear chat">&#x2715;</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="chat-empty" id="chatEmpty">Ask a question about the loaded report — e.g. "What's most concerning here?" or "Explain the CRP result."</div>
+    </div>
+    <div class="chat-input-row">
+      <textarea class="chat-input" id="chatInput" rows="1" placeholder="Ask a question about this report..." onkeydown="handleChatKey(event)"></textarea>
+      <button class="chat-send" id="chatSendBtn" onclick="sendChatMessage()">Ask</button>
+    </div>
+  </div>
+
+  <div class="symptoms-area">
+    <div class="sym-label">Presenting symptoms</div>
+    <textarea class="sym-input" id="symptomsInput" placeholder="Describe symptoms, chief complaint, or clinical presentation..."></textarea>
+  </div>
+
+  <div class="privacy-note">
+    <span style="font-size:16px;flex-shrink:0;">&#x1F512;</span>
+    <span id="privacyNoteText">Raw patient data — names, DOB, lab values, identifiers — is processed <strong>entirely on-device</strong> by phi-4-mini via Foundry Local. Only a sanitised JSON summary is forwarded to Azure AI Foundry.</span>
+  </div>
+
+  <button class="run-btn" id="runBtn" onclick="runPipeline()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21 5,3"/></svg>
+    Run hybrid pipeline
+  </button>
+
+  <div class="err-box" id="errBox"></div>
+
+  <div class="results" id="results">
+    <div class="sh" style="margin-top:24px;">Lab analysis — processed locally by phi-4-mini</div>
+    <div class="lab-assessment-box" id="labAssessment"></div>
+    <div class="lab-results-grid" id="labGrid"></div>
+    <div class="sh">Triage guidance — Cloud model via Azure Foundry</div>
+    <div class="triage-box" id="triageBox">
+      <div class="triage-header">
+        <div class="triage-dot dot-normal" id="triageDot"></div>
+        <div class="triage-label" id="triageLabel">Non-emergency guidance</div>
+      </div>
+      <div class="triage-text" id="triageText"></div>
+      <div class="triage-disclaimer">* This is not medical advice. For illustrative and educational purposes only.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="right">
+
+  <div>
+    <div class="sh">Hybrid pipeline</div>
+    <div class="pipeline">
+
+      <div class="pipe-step">
+        <div class="pipe-node" id="pn0">&#x1F4C4;</div>
+        <div class="pipe-content">
+          <div class="pipe-title">File ingested <span class="pipe-badge pb-local">local</span></div>
+          <div class="pipe-sub">Patient file read in browser. No data has left the device.</div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-node" id="pn1">&#x1F9E0;</div>
+        <div class="pipe-content">
+          <div class="pipe-title" id="pipe1Title">phi-4-mini <span class="pipe-badge pb-local">NPU · local</span></div>
+          <div class="pipe-sub" id="pipe1Sub">Foundry Local parses raw lab text on your device. Returns structured JSON.</div>
+          <div class="pipe-log" id="pl1"></div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-node" id="pn2">&#x1F512;</div>
+        <div class="pipe-content">
+          <div class="pipe-title">Privacy gate <span class="pipe-badge pb-lock">PHI blocked</span></div>
+          <div class="pipe-sub">Raw identifiers stay on device. Only sanitised JSON crosses this boundary.</div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-node" id="pn3">&#x2601;</div>
+        <div class="pipe-content">
+          <div class="pipe-title">Cloud model <span class="pipe-badge pb-cloud">Azure Foundry</span></div>
+          <div class="pipe-sub">Receives JSON + symptoms. Applies triage logic and returns guidance.</div>
+          <div class="pipe-log" id="pl3"></div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-node" id="pn4">&#x2713;</div>
+        <div class="pipe-content">
+          <div class="pipe-title">Result displayed</div>
+          <div class="pipe-sub">Triage guidance shown. Zero raw PHI was sent to the cloud.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div>
+    <div class="sh">Configuration</div>
+    <div class="config-box">
+      <div class="config-title">Connection settings</div>
+      <div class="config-fields">
+        <div id="nativeAiInfo" style="display:none;font-size:11px;color:var(--text2);line-height:1.6;
+          background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">
+          🖥️ Local stage uses the built-in on-device model (Phi Silica / Windows AI APIs).
+          No server, no manual model load — Windows manages it automatically.
+        </div>
+        <div id="foundryLocalCfg">
+          <div class="cfg-field">
+            <div class="cfg-label">Foundry Local URL</div>
+            <input class="cfg-input" id="cfgLocal" value="http://127.0.0.1:60084" placeholder="http://127.0.0.1:60084">
+          </div>
+          <div class="cfg-field">
+            <div class="cfg-label">Local model ID</div>
+            <input class="cfg-input" id="cfgModel" value="phi-4-mini-instruct-openvino-npu:2">
+          </div>
+        </div>
+        <div class="cfg-field">
+          <div class="cfg-label">Azure AI Foundry endpoint</div>
+          <input class="cfg-input" id="cfgEndpoint" placeholder="https://....services.ai.azure.com/api/projects/...">
+        </div>
+        <div class="cfg-field">
+          <div class="cfg-label">API key</div>
+          <input class="cfg-input" id="cfgKey" type="password" placeholder="••••••••••••••••">
+        </div>
+        <div class="status-row">
+          <div class="sdot sdot-gray" id="statusDot"></div>
+          <span id="statusText" style="font-size:12px;color:var(--text2);">Local service: unknown</span>
+        </div>
+        <button class="check-btn" onclick="checkStatus()">&#x26A1; Check local service</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ═══ NATIVE AI BRIDGE ═══
+// When hosted inside the HybridMed desktop shell (WebView2), window.chrome.webview exists
+// and talks straight to Microsoft.Windows.AI.Text.LanguageModel (Phi Silica) on-device —
+// this replaces the "local" pipeline stage that otherwise calls Foundry Local over HTTP.
+// The "cloud" stage (Azure AI Foundry / gpt-4.1-mini) is a real network call either way and
+// is untouched here — there is no on-device substitute for it.
+const NativeAI = (() => {
+  const native = !!(window.chrome && window.chrome.webview);
+  const pending = new Map();
+  let counter = 0;
+  if (native) {
+    window.chrome.webview.addEventListener('message', (e) => {
+      const msg = e.data;
+      if (!msg || !msg.id || !pending.has(msg.id)) return;
+      const { resolve, reject } = pending.get(msg.id);
+      pending.delete(msg.id);
+      if (msg.ok) resolve(msg); else reject(new Error(msg.error || 'Native AI error'));
+    });
+  }
+  function call(type, extra) {
+    if (!native) return Promise.reject(new Error('Native AI bridge not available'));
+    const id = 't' + (++counter) + '_' + Date.now();
+    return new Promise((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+      window.chrome.webview.postMessage(Object.assign({ id, type }, extra));
+    });
+  }
+  return {
+    isNative: native,
+    ensureReady: () => call('ensureReady'),
+    generate: (prompt) => call('generate', { prompt }),
+  };
+})();
+
+if (NativeAI.isNative) {
+  document.getElementById('nativeAiInfo').style.display = 'block';
+  document.getElementById('foundryLocalCfg').style.display = 'none';
+  document.getElementById('pipe1Title').innerHTML = 'Phi Silica <span class="pipe-badge pb-local">NPU · on-device</span>';
+  document.getElementById('pipe1Sub').textContent = 'Windows\' built-in on-device model parses raw lab text on your device. Returns structured JSON.';
+  document.getElementById('privacyNoteText').innerHTML = 'Raw patient data — names, DOB, lab values, identifiers — is processed <strong>entirely on-device</strong> by Windows\' built-in Phi Silica model. Only a sanitised JSON summary is forwarded to Azure AI Foundry.';
+}
+
+let rawLabText = '';
+let patientData = null;
+let chatHistory = [];
+let chatBusy = false;
+
+const DEMO = {
+  name:'Frontier Model', dob:'04/12/2007', age:17, sex:'Male',
+  patientId:'AXT-442871', provider:'Dr. Bot, MD', clinic:'Phi Pediatrics Group',
+  collected:'11/14/2025 14:32',
+  symptoms:'Teenager with severe headache and vomiting. Fever of 40C. No other symptoms. Onset approximately 12 hours ago.',
+  labs:`WBC: 14.5 x10^3/uL (ref 4.0-10.0) HIGH
+CRP (C-Reactive Protein): 60 mg/L (ref <5 mg/L) HIGH
+ESR (Erythrocyte Sedimentation Rate): 32 mm/hr (ref 0-15) HIGH
+Glucose (fasting): 109 mg/dL (ref 70-99) HIGH
+Hematocrit: 39.8% (ref 40.0-52.0%) LOW
+Hemoglobin: 13.2 g/dL (ref 13.0-17.5) LOW-NORMAL
+Platelets: 210 x10^3/uL (ref 150-400) NORMAL
+Sodium (Na): 138 mmol/L (ref 135-145) NORMAL
+Creatinine: 0.74 mg/dL (ref 0.50-1.00) NORMAL`
+};
+
+function loadDemo() {
+  patientData = DEMO; rawLabText = DEMO.labs;
+  document.getElementById('symptomsInput').value = DEMO.symptoms;
+  renderPatientCard(DEMO);
+  renderRawPreview(DEMO.labs);
+  document.getElementById('fileLoaded').classList.remove('visible');
+  setNode(0,'done');
+}
+
+function handleFile(file) {
+  if (!file) return;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = fmtBytes(file.size);
+  document.getElementById('fileLoaded').classList.add('visible');
+  clearResults();
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const p = parseFile(text, file.name);
+    patientData = p; rawLabText = p.labs || text;
+    renderPatientCard(p);
+    renderRawPreview(rawLabText);
+    if (p.symptoms) document.getElementById('symptomsInput').value = p.symptoms;
+    setNode(0,'done');
+  };
+  reader.readAsText(file);
+}
+
+function parseFile(text, fname) {
+  if (fname.endsWith('.json')) { try { return JSON.parse(text); } catch(e){} }
+  const obj = { name:'', dob:'', sex:'', labs:'', symptoms:'' };
+  const nm = text.match(/(?:name|patient)\s*[:\|]\s*([A-Za-z ,]+)/i);
+  if (nm) obj.name = nm[1].trim().substring(0,40);
+  const db = text.match(/(?:dob|date of birth|born)\s*[:\|]\s*([\d\/\-]+)/i);
+  if (db) obj.dob = db[1];
+  const sx = text.match(/(?:sex|gender)\s*[:\|]\s*(\w+)/i);
+  if (sx) obj.sex = sx[1];
+  const sy = text.match(/(?:symptoms?|complaint|presents? with)\s*[:\|]\s*([^\n]+)/i);
+  if (sy) obj.symptoms = sy[1].trim();
+  const lines = text.split('\n');
+  const labLines = lines.filter(l => /\d+\.?\d*\s*(mg|mmol|g\/dL|x10|%|U\/L|mm\/hr|IU)/i.test(l));
+  obj.labs = labLines.length > 0 ? labLines.join('\n') : text.substring(0,2000);
+  return obj;
+}
+
+function clearFile() {
+  patientData = null; rawLabText = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileLoaded').classList.remove('visible');
+  document.getElementById('patientCard').classList.remove('visible');
+  document.getElementById('rawPreview').classList.remove('visible');
+  document.getElementById('chatCard').classList.remove('visible');
+  clearChat();
+  clearResults(); setNode(0,'idle');
+}
+
+function renderPatientCard(p) {
+  if (!p || !p.name) { document.getElementById('patientCard').classList.remove('visible'); return; }
+  const initials = p.name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+  document.getElementById('patientInitials').textContent = initials||'?';
+  document.getElementById('patientName').textContent = p.name||'Unknown';
+  document.getElementById('patientDob').textContent = [p.dob?'DOB: '+p.dob:'',p.age?p.age+' yrs':'',p.sex||''].filter(Boolean).join(' · ');
+  document.getElementById('patientGrid').innerHTML = [
+    ['Patient ID', p.patientId||'—'], ['Provider', p.provider||'—'],
+    ['Clinic', p.clinic||'—'], ['Collected', p.collected||'—']
+  ].map(([l,v])=>`<div class="patient-field"><div class="pf-label">${l}</div><div class="pf-value">${v}</div></div>`).join('');
+  document.getElementById('patientCard').classList.add('visible');
+}
+
+function renderRawPreview(text) {
+  const lines = text.split('\n').filter(l=>l.trim());
+  document.getElementById('rawContent').textContent = text.substring(0,1500);
+  document.getElementById('rawLineCount').textContent = lines.length+' lines';
+  document.getElementById('rawPreview').classList.add('visible');
+  clearChat();
+  document.getElementById('chatCard').classList.add('visible');
+}
+
+// ═══ CHAT — ask questions about the loaded report ═══
+// Runs entirely against the local model (never the cloud stage): this operates on the raw
+// report, which is exactly the data this app's privacy gate says must stay on-device.
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); }
+}
+
+function clearChat() {
+  chatHistory = [];
+  const msgs = document.getElementById('chatMessages');
+  msgs.innerHTML = '<div class="chat-empty" id="chatEmpty">Ask a question about the loaded report — e.g. "What\'s most concerning here?" or "Explain the CRP result."</div>';
+}
+
+function appendChatMessage(role, text, cls) {
+  const msgs = document.getElementById('chatMessages');
+  const empty = document.getElementById('chatEmpty');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role + (cls ? ' ' + cls : '');
+  div.innerHTML = '<div class="chat-bubble"></div>';
+  div.querySelector('.chat-bubble').textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+async function sendChatMessage() {
+  if (chatBusy) return;
+  const input = document.getElementById('chatInput');
+  const question = input.value.trim();
+  if (!question) return;
+  if (!rawLabText.trim()) { showErr('Load a patient file or click "Load demo patient" first.'); return; }
+
+  chatBusy = true;
+  const btn = document.getElementById('chatSendBtn');
+  btn.disabled = true;
+  input.value = '';
+  appendChatMessage('user', question);
+  const thinking = appendChatMessage('assistant', 'Thinking…', 'thinking');
+
+  try {
+    const answer = await callLocalChat(question);
+    thinking.remove();
+    appendChatMessage('assistant', answer);
+    chatHistory.push({ q: question, a: answer });
+  } catch (e) {
+    thinking.remove();
+    appendChatMessage('assistant', 'Error: ' + e.message, 'error');
+  } finally {
+    chatBusy = false;
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
+async function callLocalChat(question) {
+  const symptoms = (document.getElementById('symptomsInput').value || '').trim();
+  const p = patientData || {};
+  const context = [
+    p.name ? 'Patient: ' + p.name + (p.age ? ', ' + p.age + ' yrs' : '') + (p.sex ? ', ' + p.sex : '') : null,
+    symptoms ? 'Presenting symptoms: ' + symptoms : null,
+    'Raw lab report:\n' + rawLabText,
+  ].filter(Boolean).join('\n\n');
+
+  const historyText = chatHistory.slice(-4).map(t => 'Q: ' + t.q + '\nA: ' + t.a).join('\n\n');
+
+  const sys = `You are a clinical assistant answering questions about ONE patient's report, running locally on the user's device.
+Answer using ONLY the report data given below — do not invent values that aren't present.
+Be concise (2-5 sentences unless the question needs a list). Plain language.
+If asked for a diagnosis or treatment decision, give context from the data but note you are not a substitute for a clinician.`;
+
+  const prompt = sys + '\n\n' + context
+    + (historyText ? '\n\nPrevious Q&A in this conversation:\n' + historyText : '')
+    + '\n\nQuestion: ' + question + '\nAnswer:';
+
+  if (NativeAI.isNative) {
+    const gen = await NativeAI.generate(prompt);
+    return (gen.text || '').trim();
+  }
+
+  const base = document.getElementById('cfgLocal').value.trim().replace(/\/$/,'');
+  const model = document.getElementById('cfgModel').value.trim();
+  const resp = await fetch(base+'/v1/chat/completions',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model,messages:[{role:'system',content:sys},{role:'user',content:context+'\n\nQuestion: '+question}],max_tokens:400,temperature:0.2})
+  });
+  if (!resp.ok) throw new Error(resp.status+' '+await resp.text());
+  const data = await resp.json();
+  let c = data.choices[0].message.content;
+  if (Array.isArray(c)) c = c.map(x=>x.text||'').join('');
+  return (c||'').trim();
+}
+
+function setNode(id, state) {
+  const el = document.getElementById('pn'+id);
+  el.className = 'pipe-node';
+  if (state==='active') el.classList.add('active');
+  else if (state==='done') el.classList.add('done');
+  else if (state==='error') el.classList.add('error');
+}
+
+function setLog(id, text, cls) {
+  const el = document.getElementById('pl'+id);
+  if (!el) return;
+  el.innerHTML = `<span class="${cls||''}">${text}</span>`;
+  el.classList.add('visible');
+}
+
+function clearResults() {
+  document.getElementById('results').classList.remove('visible');
+  document.getElementById('errBox').classList.remove('visible');
+  [0,1,2,3,4].forEach(i=>setNode(i,'idle'));
+  ['pl1','pl3'].forEach(id=>{ const e=document.getElementById(id); if(e){e.textContent='';e.classList.remove('visible');} });
+}
+
+async function runPipeline() {
+  const labText = rawLabText;
+  if (!labText.trim()) { showErr('Please load a patient file or click "Load demo patient" first.'); return; }
+  clearResults();
+  const btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" class="spin" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Processing...';
+
+  setNode(0,'done');
+  try {
+    setNode(1,'active');
+    setLog(1,'Sending to phi-4-mini on Foundry Local...','log-dim');
+    let labSummary;
+    try {
+      labSummary = await callLocal(labText);
+      setLog(1,'Parsed '+((labSummary.notable_abnormal_results||[]).length)+' abnormal results','log-ok');
+      setNode(1,'done');
+    } catch(e) {
+      setNode(1,'error'); setLog(1,'Error: '+e.message,'log-err');
+      const hint = NativeAI.isNative
+        ? 'On-device model error: '+e.message
+        : 'Local model failed: '+e.message+'\n\nEnsure Foundry Local is running:\n  foundry service start\n  foundry model load phi-4-mini-instruct-openvino-npu:2';
+      throw new Error(hint);
+    }
+    setNode(2,'done');
+    setNode(3,'active');
+    setLog(3,'Sending structured summary to cloud model...','log-dim');
+    const symptoms = document.getElementById('symptomsInput').value.trim()||'Not specified.';
+    let guidance;
+    try {
+      guidance = await callCloud(symptoms, labSummary);
+      setLog(3,'Triage guidance received','log-ok');
+      setNode(3,'done');
+    } catch(e) {
+      setNode(3,'error'); setLog(3,'Error: '+e.message,'log-err');
+      throw new Error('Cloud model failed: '+e.message);
+    }
+    setNode(4,'done');
+    renderResults(labSummary, guidance);
+  } catch(e) {
+    showErr(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2"><polygon points="5,3 19,12 5,21 5,3"/></svg> Run hybrid pipeline';
+  }
+}
+
+async function callLocal(labText) {
+  const sys = `You are a medical lab report summarizer running locally on the user's device.
+Respond with ONLY one valid JSON object, no markdown, no extra text:
+{"overall_assessment":"<2 sentence plain English summary>","notable_abnormal_results":[{"test":"string","value":"string","unit":"string or null","reference_range":"string or null","severity":"high|moderate|mild|normal"}]}
+Extract ALL abnormal values. If unsure use null.`;
+
+  let c;
+  if (NativeAI.isNative) {
+    const gen = await NativeAI.generate(sys + '\n\nLab data:\n' + labText);
+    c = gen.text || '';
+  } else {
+    const base = document.getElementById('cfgLocal').value.trim().replace(/\/$/,'');
+    const model = document.getElementById('cfgModel').value.trim();
+    const resp = await fetch(base+'/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model,messages:[{role:'system',content:sys},{role:'user',content:labText}],max_tokens:800,temperature:0.1})
+    });
+    if (!resp.ok) throw new Error(resp.status+' '+await resp.text());
+    const data = await resp.json();
+    c = data.choices[0].message.content;
+    if (Array.isArray(c)) c = c.map(p=>p.text||'').join('');
+  }
+  c = c.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+  return JSON.parse(c);
+}
+
+async function callCloud(symptoms, labSummary) {
+  const endpoint = document.getElementById('cfgEndpoint').value.trim().replace(/\/$/,'');
+  const key = document.getElementById('cfgKey').value.trim();
+  if (!endpoint||!key) throw new Error('Enter Azure AI Foundry endpoint and API key in the configuration panel.');
+  const sys = `You are a careful non-emergency triage assistant.
+- NOT a clinician. Do NOT diagnose or prescribe.
+- First check for red-flag symptoms (chest pain, severe breathing difficulty, stroke signs, signs of meningitis). If found, advise immediate emergency care and STOP.
+- If no red flags, provide structured guidance:
+  Assessment: what the labs suggest (1-2 sentences)
+  Next steps: what to do now (max 4 bullets)
+  When to escalate: warning signs to watch for
+  Self-care: practical advice if appropriate
+- Plain language. Empathetic tone.
+- End with exactly: "This is not medical advice."`;
+  const msg = `Patient symptoms: ${symptoms}\n\nLab summary (processed locally on-device):\n${JSON.stringify(labSummary,null,2)}\n\nProvide triage guidance.`;
+ // const url = endpoint+'/openai/v1/chat/completions?api-version=2025-01-01-preview';
+ const url = endpoint+'/openai/v1/chat/completions';
+  const resp = await fetch(url,{
+    method:'POST',headers:{'Content-Type':'application/json','api-key':key},
+    body:JSON.stringify({model:'gpt-4.1-mini',messages:[{role:'system',content:sys},{role:'user',content:msg}],max_tokens:900})
+  });
+  if (!resp.ok) throw new Error(resp.status+' '+await resp.text());
+  const data = await resp.json();
+  return data.choices[0].message.content;
+}
+
+function renderResults(summary, guidance) {
+  document.getElementById('labAssessment').textContent = summary.overall_assessment||'';
+  const grid = document.getElementById('labGrid');
+  grid.innerHTML = '';
+  (summary.notable_abnormal_results||[]).forEach(r => {
+    const sev = (r.severity||'normal').toLowerCase();
+    const cls = sev==='high'?'high':sev==='moderate'?'moderate':sev==='mild'?'mild':'normal';
+    grid.innerHTML += `<div class="lab-result-item ${cls}">
+      <div class="lri-test">${r.test||''}</div>
+      <div class="lri-value">${r.value||'—'} <span class="lri-unit">${r.unit||''}</span></div>
+      ${r.reference_range?`<div class="lri-ref">ref: ${r.reference_range}</div>`:''}
+      <span class="sev-chip sev-${cls}">${sev}</span>
+    </div>`;
+  });
+  const urgent = /urgent|emergency|immediate|chest pain|breathing difficulty|stroke|meningitis/i.test(guidance);
+  const box = document.getElementById('triageBox');
+  if (urgent) { box.classList.add('urgent'); document.getElementById('triageDot').className='triage-dot dot-urgent'; document.getElementById('triageLabel').textContent='Urgent — seek immediate care'; }
+  else { box.classList.remove('urgent'); document.getElementById('triageDot').className='triage-dot dot-normal'; document.getElementById('triageLabel').textContent='Non-emergency guidance'; }
+  document.getElementById('triageText').textContent = guidance;
+  document.getElementById('results').classList.add('visible');
+  document.getElementById('results').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function showErr(msg) {
+  const el = document.getElementById('errBox');
+  el.textContent = msg; el.classList.add('visible');
+}
+
+async function checkStatus() {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  dot.className='sdot sdot-gray'; txt.textContent='Checking...';
+
+  if (NativeAI.isNative) {
+    try {
+      const ready = await NativeAI.ensureReady();
+      if (ready.ok) { dot.className='sdot sdot-green'; txt.textContent='On-device model: ready'; }
+      else { dot.className='sdot sdot-red'; txt.textContent='On-device model: '+(ready.error||ready.state); }
+    } catch(e) { dot.className='sdot sdot-red'; txt.textContent='On-device model: '+e.message; }
+    return;
+  }
+
+  const base = document.getElementById('cfgLocal').value.trim().replace(/\/$/,'');
+  try {
+    const r = await fetch(base+'/openai/status',{signal:AbortSignal.timeout(3000)});
+    if (r.ok){dot.className='sdot sdot-green';txt.textContent='Local service: running';}
+    else{dot.className='sdot sdot-red';txt.textContent='Local service: error '+r.status;}
+  } catch(e) { dot.className='sdot sdot-red'; txt.textContent='Local service: not reachable'; }
+}
+
+function fmtBytes(b) {
+  if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'KB';return(b/1048576).toFixed(1)+'MB';
+}
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag');});
+zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');if(e.dataTransfer.files[0])handleFile(e.dataTransfer.files[0]);});
+
+checkStatus();
+</script>
+</body>
+</html>

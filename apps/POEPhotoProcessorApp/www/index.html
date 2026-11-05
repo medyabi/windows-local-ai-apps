@@ -1,0 +1,1866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POE Photo Processor — On-Device AI</title>
+<script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exifr@7.1.3/dist/full.umd.js"></script>
+<style>
+:root{
+  --bg:#07090b; --s1:#0c1015; --s2:#101620; --s3:#141d28;
+  --b1:#182030; --b2:#1e2d40; --b3:#253850;
+  --cyan:#00c8e8; --cyan-d:rgba(0,200,232,.1); --cyan-m:rgba(0,200,232,.22);
+  --gold:#f0b429; --gold-d:rgba(240,180,41,.1);
+  --grn:#34d399;  --grn-d:rgba(52,211,153,.1);
+  --red:#f87171;  --red-d:rgba(248,113,113,.1);
+  --violet:#a78bfa; --violet-d:rgba(167,139,250,.1);
+  --t1:#e2eef5; --t2:#6b93aa; --t3:#2d4d60;
+  --sans:'Segoe UI',system-ui,sans-serif;
+  --mono:'Courier New',monospace;
+  --r:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 100% 40% at 50% 0,rgba(0,200,232,.04),transparent);}
+
+/* ── HEADER ── */
+header{position:sticky;top:0;z-index:200;height:54px;
+  background:rgba(7,9,11,.97);backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--b1);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo-mark{width:30px;height:30px;border-radius:7px;
+  background:linear-gradient(135deg,var(--cyan),#0088aa);
+  display:flex;align-items:center;justify-content:center;font-size:15px;}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:-.3px;}
+.logo-name em{color:var(--cyan);font-style:normal;}
+.hdr-r{display:flex;align-items:center;gap:8px;}
+.pill{font-family:var(--mono);font-size:10px;padding:3px 8px;
+  border-radius:20px;border:1px solid var(--b2);color:var(--t2);}
+.pill.on{border-color:var(--grn);color:var(--grn);background:var(--grn-d);}
+.pill.bad{border-color:var(--red);color:var(--red);background:var(--red-d);}
+.pill.warn{border-color:var(--gold);color:var(--gold);background:var(--gold-d);}
+.btn-hdr{background:var(--s2);border:1px solid var(--b2);color:var(--t2);
+  padding:5px 12px;border-radius:6px;font-size:11px;cursor:pointer;transition:all .15s;}
+.btn-hdr:hover{border-color:var(--cyan);color:var(--cyan);}
+.btn-hdr:disabled{opacity:.35;cursor:default;}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:270px 1fr;min-height:calc(100vh - 54px);
+  position:relative;z-index:1;}
+
+/* ── SIDEBAR ── */
+aside{background:var(--s1);border-right:1px solid var(--b1);
+  overflow-y:auto;padding:18px 0;}
+.sb-sec{padding:0 14px;margin-bottom:18px;}
+.sb-lbl{font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--t3);
+  text-transform:uppercase;margin-bottom:8px;}
+
+/* reference face */
+.ref-box{border:2px dashed var(--b2);border-radius:var(--r);
+  padding:18px 14px;text-align:center;cursor:pointer;transition:all .2s;position:relative;}
+.ref-box:hover{border-color:var(--cyan);background:var(--cyan-d);}
+.ref-box.loaded{border-style:solid;border-color:var(--grn);background:var(--grn-d);}
+.ref-avatar{width:68px;height:68px;border-radius:50%;object-fit:cover;
+  border:2.5px solid var(--grn);display:none;margin:0 auto 8px;}
+.ref-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+.ref-sub{font-size:11px;color:var(--t2);}
+.ref-match-info{font-size:11px;color:var(--grn);margin-top:6px;display:none;}
+
+/* settings */
+.setting{display:flex;align-items:center;justify-content:space-between;
+  padding:8px 11px;background:var(--s2);border-radius:7px;margin-bottom:4px;}
+.setting-lbl{font-size:12px;color:var(--t2);}
+.tog{width:34px;height:18px;border-radius:9px;background:var(--b2);
+  position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.tog.on{background:var(--cyan);}
+.tog::after{content:'';position:absolute;top:2px;left:2px;
+  width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;}
+.tog.on::after{transform:translateX(16px);}
+.sl-row{background:var(--s2);border-radius:7px;padding:8px 11px;margin-bottom:4px;}
+.sl-row-top{display:flex;justify-content:space-between;font-size:11px;color:var(--t2);margin-bottom:5px;}
+.sl-row-top span{color:var(--cyan);font-family:var(--mono);}
+.sl-row input[type=range]{width:100%;accent-color:var(--cyan);}
+
+/* overlay config */
+.ov-cfg{background:var(--s2);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;}
+.ov-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;}
+.ov-row label{color:var(--t2);}
+.ov-row input[type=text],.ov-row select{
+  background:var(--bg);border:1px solid var(--b2);color:var(--t1);
+  padding:5px 8px;border-radius:5px;font-size:11px;width:120px;}
+.ov-row input[type=color]{width:34px;height:24px;padding:1px 2px;cursor:pointer;
+  border-radius:4px;border:1px solid var(--b2);background:transparent;}
+
+/* ai cfg */
+.ai-cfg{background:var(--s2);border-radius:var(--r);padding:12px;display:flex;flex-direction:column;gap:8px;}
+.ai-cfg label{font-size:11px;color:var(--t3);}
+.ai-cfg input,.ai-cfg select{background:var(--bg);border:1px solid var(--b2);color:var(--t1);
+  padding:7px 10px;border-radius:6px;font-size:11px;font-family:var(--mono);width:100%;}
+.ai-cfg input:focus,.ai-cfg select:focus{outline:1px solid var(--cyan);}
+.conn-row{display:flex;align-items:center;gap:7px;padding:8px 10px;
+  background:var(--bg);border-radius:6px;}
+.cdot{width:7px;height:7px;border-radius:50%;background:var(--t3);flex-shrink:0;transition:all .3s;}
+.cdot.ok{background:var(--grn);box-shadow:0 0 6px var(--grn);}
+.cdot.err{background:var(--red);}
+.cdot.spin{background:var(--gold);animation:blink .5s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.cmsg{font-size:11px;color:var(--t2);flex:1;}
+
+/* ── MAIN ── */
+main{display:flex;flex-direction:column;overflow-y:auto;}
+
+/* drop zone */
+.drop-zone{border:2px dashed var(--b2);border-radius:14px;margin:20px;padding:44px;
+  text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.drop-zone::before{content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at 50% 0,var(--cyan-d),transparent 60%);
+  opacity:0;transition:opacity .2s;}
+.drop-zone:hover::before,.drop-zone.drag::before{opacity:1;}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--cyan);}
+.dz-icon{font-size:38px;display:block;margin-bottom:10px;}
+.dz-title{font-size:14px;font-weight:600;margin-bottom:4px;}
+.dz-sub{font-size:12px;color:var(--t2);}
+input[type=file]{display:none;}
+
+/* stats */
+.stats-row{display:flex;gap:0;background:var(--s1);border-bottom:1px solid var(--b1);}
+.stat{flex:1;padding:14px 16px;border-right:1px solid var(--b1);text-align:center;}
+.stat:last-child{border-right:none;}
+.stat-v{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--cyan);}
+.stat-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+
+/* toolbar */
+.toolbar{display:flex;align-items:center;gap:10px;padding:14px 20px;
+  background:var(--s1);border-bottom:1px solid var(--b1);flex-wrap:wrap;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;
+  border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;
+  border:1px solid transparent;transition:all .15s;}
+.btn-p{background:linear-gradient(135deg,var(--cyan),#0099bb);color:#000;}
+.btn-p:hover{filter:brightness(1.1);}
+.btn-p:disabled{opacity:.35;cursor:default;}
+.btn-s{background:transparent;border-color:var(--b2);color:var(--t2);}
+.btn-s:hover{border-color:var(--t1);color:var(--t1);}
+.btn-d{background:transparent;color:var(--t3);font-size:11px;padding:6px 10px;}
+.btn-d:hover{color:var(--red);}
+
+/* progress */
+.prog-wrap-outer{padding:0 20px 14px;display:none;}
+.prog-header{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;}
+.prog-pct{font-family:var(--mono);color:var(--cyan);}
+.prog-track{height:3px;background:var(--b1);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet));
+  width:0%;transition:width .35s;border-radius:2px;}
+.prog-msg{font-family:var(--mono);font-size:10px;color:var(--t2);margin-top:5px;}
+
+/* ── PHOTO LIST ── */
+.photo-list{display:flex;flex-direction:column;gap:0;padding:0;}
+
+/* each photo row */
+.photo-row{border-bottom:1px solid var(--b1);transition:background .15s;}
+.photo-row:hover{background:rgba(0,200,232,.02);}
+.photo-row.processing{background:rgba(240,180,41,.04);}
+.photo-row.done{background:rgba(52,211,153,.03);}
+.photo-row.error{background:rgba(248,113,113,.04);}
+
+/* collapsed header */
+.photo-row-hdr{display:grid;grid-template-columns:44px 1fr auto auto auto;align-items:center;
+  gap:12px;padding:12px 20px;cursor:pointer;user-select:none;}
+.pr-thumb{width:44px;height:44px;border-radius:6px;object-fit:cover;
+  border:1px solid var(--b2);flex-shrink:0;}
+.pr-info{}
+.pr-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px;}
+.pr-meta{font-size:11px;color:var(--t2);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap;}
+.pr-meta span{display:flex;align-items:center;gap:3px;}
+.pr-chips{display:flex;gap:5px;align-items:center;flex-shrink:0;}
+.chip{font-size:10px;padding:2px 7px;border-radius:10px;font-family:var(--mono);white-space:nowrap;}
+.chip-blur{background:var(--red-d);color:var(--red);border:1px solid rgba(248,113,113,.2);}
+.chip-keep{background:var(--grn-d);color:var(--grn);border:1px solid rgba(52,211,153,.2);}
+.chip-proc{background:var(--gold-d);color:var(--gold);border:1px solid rgba(240,180,41,.2);}
+.chip-done{background:var(--grn-d);color:var(--grn);border:1px solid rgba(52,211,153,.2);}
+.pr-actions{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.pr-expand{font-size:12px;color:var(--t3);flex-shrink:0;transition:transform .2s;padding:4px;}
+
+/* expanded panel — SIDE BY SIDE PREVIEW */
+.photo-row-body{display:none;padding:0 20px 20px;}
+.photo-row-body.open{display:block;}
+
+.sbs-wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;}
+.sbs-panel{display:flex;flex-direction:column;gap:8px;}
+.sbs-label{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--t3);padding:0 2px;}
+.sbs-canvas-wrap{border-radius:8px;overflow:hidden;background:#000;position:relative;
+  border:1px solid var(--b2);}
+.sbs-canvas-wrap canvas{width:100%;height:auto;display:block;max-height:420px;object-fit:contain;}
+.sbs-canvas-wrap.after{border-color:var(--grn);}
+
+/* face boxes overlay */
+.face-overlay{position:absolute;inset:0;pointer-events:none;}
+.fbox{position:absolute;border-radius:3px;cursor:pointer;pointer-events:all;transition:all .15s;}
+.fbox.blur{border:2px solid var(--red);} .fbox.blur:hover{border-color:var(--gold);}
+.fbox.keep{border:2px solid var(--grn);}
+.fbox-label{position:absolute;top:-18px;left:50%;transform:translateX(-50%);
+  font-size:9px;padding:1px 5px;border-radius:3px;font-family:var(--mono);
+  white-space:nowrap;pointer-events:none;}
+.fbox.blur .fbox-label{background:var(--red);color:#000;}
+.fbox.keep .fbox-label{background:var(--grn);color:#000;}
+.fbox-hint{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.8);backdrop-filter:blur(4px);
+  border-radius:5px;padding:4px 10px;font-size:10px;color:var(--gold);
+  pointer-events:none;white-space:nowrap;}
+
+/* caption */
+.caption-box{background:var(--s2);border-radius:7px;padding:10px 14px;
+  border-left:2px solid var(--violet);font-size:12px;color:var(--t2);
+  font-style:italic;display:none;}
+
+/* row action strip */
+.row-actions{display:flex;gap:8px;align-items:center;}
+
+/* ── LIGHTBOX ── */
+.lb-bg{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.92);
+  backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;padding:20px;}
+.lb-bg.show{display:flex;}
+.lb-inner{background:var(--s1);border:1px solid var(--b2);border-radius:14px;
+  max-width:95vw;max-height:95vh;overflow:auto;padding:20px;}
+.lb-sbs{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:14px;}
+.lb-panel{display:flex;flex-direction:column;gap:6px;}
+.lb-label{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--t3);}
+.lb-panel img{width:100%;border-radius:8px;display:block;}
+.lb-actions{display:flex;gap:10px;justify-content:flex-end;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:18px;right:18px;z-index:9999;
+  background:var(--s2);border:1px solid var(--b2);border-left:3px solid var(--cyan);
+  padding:10px 16px;border-radius:7px;font-size:12px;
+  transform:translateY(60px);opacity:0;transition:all .25s;max-width:300px;}
+#toast.show{transform:none;opacity:1;}
+#toast.ok{border-left-color:var(--grn);}
+#toast.err{border-left-color:var(--red);}
+
+/* ── EMPTY ── */
+.empty-hint{text-align:center;padding:50px 30px;color:var(--t3);}
+.empty-hint .ei{font-size:42px;display:block;margin-bottom:12px;}
+.empty-hint h3{font-size:16px;color:var(--t2);margin-bottom:5px;}
+.empty-hint p{font-size:12px;line-height:1.7;}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px;}
+
+/* Location autocomplete dropdown */
+.loc-wrap{position:relative;width:100%;}
+.loc-dropdown{
+  position:absolute;top:100%;left:0;right:0;z-index:9999;
+  background:var(--s1);border:1px solid var(--cyan);border-top:none;
+  border-radius:0 0 7px 7px;max-height:200px;overflow-y:auto;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);}
+.loc-item{
+  padding:9px 12px;font-size:12px;color:var(--t2);cursor:pointer;
+  border-bottom:1px solid var(--b1);transition:background .1s;line-height:1.4;}
+.loc-item:last-child{border-bottom:none;}
+.loc-item:hover,.loc-item.active{background:var(--cyan-d);color:var(--t1);}
+.loc-item .loc-main{font-weight:500;color:var(--t1);}
+.loc-item .loc-sub{font-size:10px;color:var(--t3);margin-top:2px;}
+.loc-loading{padding:10px 12px;font-size:11px;color:var(--t3);font-family:var(--mono);}
+
+/* Make native date/time pickers work on dark backgrounds */
+input[type="date"],input[type="time"]{color-scheme:dark;-webkit-color-scheme:dark;}
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator{
+  filter:invert(1) brightness(1.5);cursor:pointer;padding:2px;border-radius:3px;}
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="time"]::-webkit-calendar-picker-indicator:hover{background:rgba(0,200,232,.2);}
+input[type="date"]:focus,input[type="time"]:focus{outline:1px solid var(--cyan);}
+
+@media print{header,aside,#toast,.toolbar,.row-actions,.btn{display:none!important;}
+  .layout{grid-template-columns:1fr;} .sbs-wrap{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ── LIGHTBOX ── -->
+<div class="lb-bg" id="lightbox" onclick="closeLB(event)">
+  <div class="lb-inner" onclick="event.stopPropagation()">
+    <div style="font-size:16px;font-weight:600;margin-bottom:14px;" id="lb-title">Photo Preview</div>
+    <div class="lb-sbs">
+      <div class="lb-panel">
+        <div class="lb-label">⬛ Before — Original</div>
+        <img id="lb-before" src="" alt="Before">
+      </div>
+      <div class="lb-panel">
+        <div class="lb-label">✅ After — Processed</div>
+        <img id="lb-after" src="" alt="After">
+      </div>
+    </div>
+    <div class="lb-actions">
+      <button class="btn btn-p" id="lb-dl" onclick="">⬇ Download Processed</button>
+      <button class="btn btn-s" onclick="document.getElementById('lightbox').classList.remove('show')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">📸</div>
+    <span class="logo-name">POE <em>Photo</em> Processor</span>
+  </div>
+  <div class="hdr-r">
+    <span class="pill warn" id="pill-models">Loading models…</span>
+    <span class="pill bad"  id="pill-ai">AI: ✗</span>
+    <span class="pill"       id="pill-model" style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+    <span class="pill bad"  id="pill-ref">No ref face</span>
+    <button class="btn-hdr" id="btn-zip" onclick="downloadZip()" disabled style="background:var(--grn-d);border-color:var(--grn);color:var(--grn);">⬇ Download All (ZIP)</button>
+  </div>
+</header>
+
+<div class="layout">
+
+<!-- ══ SIDEBAR ══ -->
+<aside>
+
+  <!-- YOUR FACE -->
+  <div class="sb-sec">
+    <div class="sb-lbl">Your Face — Skip Blur</div>
+    <div class="ref-box" id="ref-box" onclick="document.getElementById('fi-ref').click()">
+      <input type="file" id="fi-ref" accept="image/*" onchange="loadRef(event)">
+      <img class="ref-avatar" id="ref-av" src="" alt="">
+      <div class="ref-title" id="ref-title">📷 Upload your selfie</div>
+      <div class="ref-sub"  id="ref-sub">Your face will NOT be blurred</div>
+      <div class="ref-match-info" id="ref-match-info"></div>
+    </div>
+    <div style="font-size:11px;color:var(--t3);margin-top:6px;line-height:1.6;padding:0 2px;">
+      Match threshold:
+    </div>
+    <div class="sl-row" style="margin-top:4px;">
+      <div class="sl-row-top">Similarity threshold <span id="thresh-lbl">0.50</span></div>
+      <input type="range" id="thresh" min="0.30" max="0.75" step="0.01" value="0.50"
+        oninput="document.getElementById('thresh-lbl').textContent=parseFloat(this.value).toFixed(2)">
+    </div>
+  </div>
+
+  <!-- BLUR -->
+  <div class="sb-sec">
+    <div class="sb-lbl">Blur Settings</div>
+    <div class="setting">
+      <span class="setting-lbl">Pixelate (vs blur)</span>
+      <div class="tog" id="tog-pixel" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="sl-row">
+      <div class="sl-row-top">Blur strength <span id="blur-lbl">18</span>px</div>
+      <input type="range" id="blur-str" min="4" max="40" value="18"
+        oninput="document.getElementById('blur-lbl').textContent=this.value">
+    </div>
+    <div class="sl-row">
+      <div class="sl-row-top">Face padding <span id="pad-lbl">22</span>%</div>
+      <input type="range" id="blur-pad" min="0" max="60" value="22"
+        oninput="document.getElementById('pad-lbl').textContent=this.value">
+    </div>
+  </div>
+
+  <!-- EXIF OVERLAY -->
+  <div class="sb-sec">
+    <div class="sb-lbl">Overlay — Date / Time / Location</div>
+    <div class="ov-cfg">
+
+      <div style="font-size:10px;color:var(--cyan);font-family:var(--mono);letter-spacing:1px;padding:2px 0;">
+        AUTO (from EXIF)
+      </div>
+      <div class="ov-row">
+        <label>Show date</label>
+        <div class="tog on" id="tog-date" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="ov-row">
+        <label>Show time</label>
+        <div class="tog on" id="tog-time" onclick="this.classList.toggle('on')"></div>
+      </div>
+      <div class="ov-row">
+        <label>Show GPS</label>
+        <div class="tog on" id="tog-gps" onclick="this.classList.toggle('on')"></div>
+      </div>
+
+      <!-- Hidden fallback inputs — actual editing is done per-photo in the expanded row -->
+      <input type="hidden" id="manual-date">
+      <input type="hidden" id="manual-time">
+      <input type="hidden" id="manual-location">
+      <input type="hidden" id="event-name">
+
+      <div style="font-size:10px;color:var(--t3);font-family:var(--mono);letter-spacing:1px;padding:6px 0 2px;">
+        STYLE
+      </div>
+      <div class="ov-row">
+        <label>Position</label>
+        <select id="ov-pos">
+          <option value="br">Bottom Right</option>
+          <option value="bl">Bottom Left</option>
+          <option value="tr">Top Right</option>
+          <option value="tl">Top Left</option>
+        </select>
+      </div>
+      <div class="ov-row">
+        <label>Text color</label>
+        <input type="color" id="ov-color" value="#ffffff">
+      </div>
+      <div class="ov-row">
+        <label>Font size</label>
+        <select id="ov-fontsize">
+          <option value="auto">Auto</option>
+          <option value="16">16px</option>
+          <option value="20">20px</option>
+          <option value="28">28px</option>
+          <option value="36">36px</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI CONFIG -->
+  <div class="sb-sec">
+    <div class="sb-lbl" id="ai-sec-lbl">On-Device AI</div>
+    <div class="ai-cfg">
+
+      <!-- Shown only when running inside the native shell (Phi Silica via Windows AI APIs) -->
+      <div id="native-ai-info" style="display:none;font-size:11px;color:var(--t2);line-height:1.6;
+        background:var(--bg);border:1px solid var(--b2);border-radius:6px;padding:8px 10px;">
+        🖥️ Using the built-in on-device model (Phi Silica / Windows AI APIs). No server, no manual
+        model load — Windows manages it automatically.
+      </div>
+
+      <!-- Foundry Local fallback controls — only shown outside the native shell -->
+      <div id="foundry-cfg">
+        <div>
+          <label>API endpoint</label>
+          <input type="text" id="ai-url" value="http://localhost:60084/v1/chat/completions" style="margin-top:4px;">
+        </div>
+        <div>
+          <label>Model</label>
+          <div style="display:flex;gap:6px;margin-top:4px;">
+            <select id="ai-model" style="flex:1;background:var(--bg);border:1px solid var(--b2);
+              color:var(--t1);padding:7px 10px;border-radius:6px;font-size:11px;font-family:var(--mono);">
+              <option value="">— click Detect to load models —</option>
+            </select>
+            <button onclick="detectModels()" title="Fetch available models from Foundry"
+              style="background:var(--s2);border:1px solid var(--b2);color:var(--cyan);
+              padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;"
+              id="btn-detect">⟳ Detect</button>
+          </div>
+          <div id="model-hint" style="font-size:10px;color:var(--t3);margin-top:4px;font-family:var(--mono);">
+            Click ⟳ Detect to load available models from Foundry Local
+          </div>
+        </div>
+      </div>
+
+      <div class="conn-row">
+        <div class="cdot" id="cdot"></div>
+        <span class="cmsg" id="cmsg">Not tested</span>
+        <button class="btn-hdr" onclick="testAI()">Test</button>
+      </div>
+      <div class="setting">
+        <span class="setting-lbl">AI caption on photo</span>
+        <div class="tog on" id="tog-caption" onclick="this.classList.toggle('on')"></div>
+      </div>
+    </div>
+  </div>
+
+</aside>
+
+<!-- ══ MAIN ══ -->
+<main>
+
+  <!-- Stats -->
+  <div class="stats-row" id="stats-row" style="display:none">
+    <div class="stat"><div class="stat-v" id="st-total">0</div><div class="stat-l">Photos</div></div>
+    <div class="stat"><div class="stat-v" id="st-done" style="color:var(--grn)">0</div><div class="stat-l">Done</div></div>
+    <div class="stat"><div class="stat-v" id="st-faces">0</div><div class="stat-l">Faces</div></div>
+    <div class="stat"><div class="stat-v" id="st-blurred" style="color:var(--red)">0</div><div class="stat-l">Blurred</div></div>
+    <div class="stat"><div class="stat-v" id="st-kept" style="color:var(--grn)">0</div><div class="stat-l">Kept (you)</div></div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <button class="btn btn-p" id="btn-all" onclick="processAll()">⚡ Process All</button>
+    <button class="btn btn-s" id="btn-dl-all-toolbar" onclick="downloadZip()" disabled
+      style="border-color:var(--grn);color:var(--grn);">
+      ⬇ Download All
+    </button>
+    <button class="btn btn-s" onclick="document.getElementById('fi-more').click()">＋ Add Photos
+      <input type="file" id="fi-more" accept="image/*" multiple onchange="onMoreFiles(event)" style="display:none">
+    </button>
+    <button class="btn btn-s" onclick="clearAll()">🗑 Clear</button>
+    <div style="margin-left:auto;font-size:11px;color:var(--t3)" id="toolbar-hint">
+      Upload a selfie in the sidebar to protect your face
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div class="prog-wrap-outer" id="prog-wrap">
+    <div class="prog-header">
+      <span id="prog-label" style="font-size:12px;color:var(--t2)">Processing…</span>
+      <span class="prog-pct" id="prog-pct">0%</span>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="prog-fill"></div></div>
+    <div class="prog-msg" id="prog-msg"></div>
+  </div>
+
+  <!-- Drop zone -->
+  <div class="drop-zone" id="drop-zone"
+    onclick="document.getElementById('fi-main').click()"
+    ondragover="ev.preventDefault();this.classList.add('drag');event.preventDefault();"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="onDrop(event)">
+    <input type="file" id="fi-main" accept="image/*" multiple onchange="onFiles(event)">
+    <span class="dz-icon">🖼️</span>
+    <div class="dz-title">Drop your POE event photos here</div>
+    <div class="dz-sub">JPG · PNG · HEIC — EXIF date / time / GPS extracted automatically<br>
+    Each photo shows a side-by-side Before / After preview</div>
+  </div>
+
+  <!-- Empty -->
+  <div class="empty-hint" id="empty-hint">
+    <span class="ei">🎯</span>
+    <h3>Protect your attendees' privacy</h3>
+    <p>1. Upload your selfie (sidebar) so your face is never blurred<br>
+    2. Drop event photos above<br>
+    3. Click ⚡ Process All — faces blurred, EXIF date/time/GPS overlaid</p>
+  </div>
+
+  <!-- Photo list -->
+  <div class="photo-list" id="photo-list"></div>
+
+</main>
+</div>
+
+<div id="toast"></div>
+
+<!-- ══════════════════ JS ══════════════════ -->
+<script>
+// (removed stale pdfjs ref)
+
+// ═══ STATE ═══
+const G = {
+  photos: [],
+  refDesc: null,
+  modelsOK: false,
+  lbId: null
+};
+
+// ═══ NATIVE AI BRIDGE ═══
+// When this page is hosted inside the POE Photo Processor desktop shell (WebView2),
+// window.chrome.webview exists and talks straight to Microsoft.Windows.AI.Text.LanguageModel
+// (Phi Silica) on-device — no Foundry Local server, no manual model load.
+// When opened as a plain web page (no native host), NativeAI.isNative is false and every
+// call below falls back to the original Foundry Local HTTP path.
+const NativeAI = (() => {
+  const native = !!(window.chrome && window.chrome.webview);
+  const pending = new Map();
+  let counter = 0;
+  if (native) {
+    window.chrome.webview.addEventListener('message', (e) => {
+      const msg = e.data;
+      if (!msg || !msg.id || !pending.has(msg.id)) return;
+      const { resolve, reject } = pending.get(msg.id);
+      pending.delete(msg.id);
+      if (msg.ok) resolve(msg); else reject(new Error(msg.error || 'Native AI error'));
+    });
+  }
+  function call(type, extra) {
+    if (!native) return Promise.reject(new Error('Native AI bridge not available'));
+    const id = 't' + (++counter) + '_' + Date.now();
+    return new Promise((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+      window.chrome.webview.postMessage(Object.assign({ id, type }, extra));
+    });
+  }
+  return {
+    isNative: native,
+    ensureReady: () => call('ensureReady'),
+    generate: (prompt) => call('generate', { prompt }),
+  };
+})();
+
+// ═══ INIT ═══
+addEventListener('DOMContentLoaded', () => {
+  loadModels();
+
+  if (NativeAI.isNative) {
+    // Native shell: hide the Foundry Local endpoint/model controls, show the on-device badge,
+    // and eagerly check model readiness so the header pill is accurate before the user clicks Test.
+    $('ai-sec-lbl').textContent = 'On-Device AI — Phi Silica';
+    $('native-ai-info').style.display = 'block';
+    $('foundry-cfg').style.display = 'none';
+    $('pill-model').textContent = 'Phi Silica (on-device)';
+    testAI();
+    return;
+  }
+
+  const c = localStorage.getItem('poe2_cfg');
+  if (c) {
+    try {
+      const j = JSON.parse(c);
+      if (j.url)   $('ai-url').value = j.url;
+      if (j.model) {
+        // Add saved model as an option so it's visible immediately
+        const sel = $('ai-model');
+        const opt = document.createElement('option');
+        opt.value = j.model; opt.selected = true;
+        opt.textContent = j.model.split('/').pop() + ' (saved)';
+        sel.innerHTML = '';
+        sel.appendChild(opt);
+        $('model-hint').textContent = 'Saved: ' + j.model.split('/').pop() + ' — click ⟳ Detect to refresh';
+        $('model-hint').style.color = 'var(--cyan)';
+        $('pill-model').textContent = j.model.split('/').pop().substring(0,20);
+      }
+    } catch(_) {}
+  }
+});
+
+const $ = id => document.getElementById(id);
+const isOn = id => $(id).classList.contains('on');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const fmt2 = n => String(n).padStart(2,'0');
+
+// ═══ FACE-API MODELS ═══
+async function loadModels() {
+  const pill = $('pill-models');
+  try {
+    const BASE = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model';
+    await Promise.all([
+      faceapi.nets.ssdMobilenetv1.loadFromUri(BASE),
+      faceapi.nets.faceLandmark68Net.loadFromUri(BASE),
+      faceapi.nets.faceRecognitionNet.loadFromUri(BASE),
+    ]);
+    G.modelsOK = true;
+    pill.textContent = 'face-api ✓'; pill.className = 'pill on';
+    toast('Face detection ready ✓', 'ok');
+  } catch(e) {
+    pill.textContent = 'face-api ✗'; pill.className = 'pill bad';
+    toast('Model load failed — need internet once to cache CDN models', 'err');
+  }
+}
+
+// ═══ REFERENCE FACE ═══
+async function loadRef(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (!G.modelsOK) { toast('Wait for face models to finish loading', 'err'); return; }
+  const img = await fileToImg(file);
+  const det = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+  if (!det) { toast('No face found in selfie — try a clearer front-facing photo', 'err'); return; }
+  G.refDesc = det.descriptor;
+  const av = $('ref-av');
+  av.src = URL.createObjectURL(file);
+  av.style.display = 'block';
+  $('ref-title').textContent = '✓ Your face registered';
+  $('ref-sub').textContent = 'Will never be blurred';
+  $('ref-match-info').textContent = `Descriptor: ${det.descriptor.length}D embedding`;
+  $('ref-match-info').style.display = 'block';
+  $('ref-box').classList.add('loaded');
+  $('pill-ref').textContent = 'Ref ✓'; $('pill-ref').className = 'pill on';
+  $('toolbar-hint').textContent = '✓ Your face is protected — Upload photos and Process';
+  toast('Reference selfie registered ✓', 'ok');
+}
+
+// ═══ AI ═══
+function aiUrl()   { return $('ai-url').value.trim(); }
+function aiModel() { return $('ai-model').value; }
+
+// Detect available models from Foundry /v1/models endpoint
+async function detectModels() {
+  const btn  = $('btn-detect');
+  const hint = $('model-hint');
+  const sel  = $('ai-model');
+  if (btn) { btn.textContent = '⟳ …'; btn.disabled = true; }
+  hint.textContent = 'Fetching models from Foundry…';
+  hint.style.color = 'var(--gold)';
+
+  const base = aiUrl().split('/v1/')[0];
+  try {
+    const mr = await fetch(base + '/v1/models', {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!mr.ok) throw new Error('HTTP ' + mr.status);
+    const md   = await mr.json();
+    const models = (md.data || []).map(m => m.id).filter(Boolean);
+    if (!models.length) throw new Error('No models returned');
+
+    // Save previously selected model
+    const prev = aiModel();
+    sel.innerHTML = models.map((m, i) =>
+      `<option value="${m}" ${(m===prev || (!prev && i===0)) ? 'selected' : ''}>${m}</option>`
+    ).join('');
+
+    hint.textContent = '✓ ' + models.length + ' model(s) found — select one above';
+    hint.style.color = 'var(--grn)';
+    localStorage.setItem('poe2_cfg', JSON.stringify({ url: aiUrl(), model: aiModel() }));
+    toast('✓ ' + models.length + ' model(s) loaded from Foundry', 'ok');
+  } catch(e) {
+    hint.textContent = '✗ ' + e.message + ' — is Foundry running with --cors?';
+    hint.style.color = 'var(--red)';
+    toast('Could not reach Foundry: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.textContent = '⟳ Detect'; btn.disabled = false; }
+  }
+}
+
+async function testAI() {
+  const dot = $('cdot'), msg = $('cmsg');
+  dot.className = 'cdot spin'; msg.textContent = 'Testing…';
+
+  if (NativeAI.isNative) {
+    try {
+      const ready = await NativeAI.ensureReady();
+      if (!ready.ok) throw new Error(ready.error || ('Model state: ' + ready.state));
+      const gen = await NativeAI.generate('Reply with the word OK only.');
+      dot.className = 'cdot ok';
+      msg.textContent = '✓ Phi Silica (on-device) — "' + (gen.text || '').trim().substring(0, 30) + '"';
+      $('pill-ai').textContent = 'AI ✓'; $('pill-ai').className = 'pill on';
+      $('pill-model').textContent = 'Phi Silica (on-device)';
+      toast('On-device Phi Silica ready ✓', 'ok');
+    } catch (e) {
+      dot.className = 'cdot err';
+      msg.textContent = '✗ ' + e.message.substring(0, 120);
+      $('pill-ai').textContent = 'AI ✗'; $('pill-ai').className = 'pill bad';
+      toast('On-device AI error: ' + e.message.substring(0, 100), 'err');
+    }
+    return;
+  }
+
+  // Step 1: detect models automatically
+  await detectModels();
+
+  // Step 2: verify completion with the selected model
+  if (!aiModel()) {
+    dot.className = 'cdot err';
+    msg.textContent = '✗ No model selected — click ⟳ Detect first';
+    return;
+  }
+  try {
+    const payload = {
+      model: aiModel(),
+      max_tokens: 16,
+      temperature: 0,
+      messages: [{ role: 'user', content: 'Reply with the word OK only.' }]
+    };
+    const r = await fetch(aiUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) {
+      const t = await r.text().catch(() => '');
+      // Parse error message from Foundry JSON response
+      let errMsg = 'HTTP ' + r.status;
+      try {
+        const errJson = JSON.parse(t);
+        errMsg = errJson.error?.message || errMsg;
+      } catch(_) { errMsg += ' ' + t.substring(0, 100); }
+      throw new Error(errMsg);
+    }
+    const d = await r.json();
+    const reply = (d.choices?.[0]?.message?.content || '').trim().substring(0, 30);
+    dot.className = 'cdot ok';
+    msg.textContent = '✓ ' + aiModel().split('/').pop() + ' — "' + reply + '"';
+    $('pill-ai').textContent = 'AI ✓'; $('pill-ai').className = 'pill on';
+    $('pill-model').textContent = aiModel().split('/').pop().substring(0, 20);
+    localStorage.setItem('poe2_cfg', JSON.stringify({ url: aiUrl(), model: aiModel() }));
+    toast('Foundry Local connected ✓', 'ok');
+  } catch(e) {
+    dot.className = 'cdot err';
+    msg.textContent = '✗ ' + e.message.substring(0, 100);
+    $('pill-ai').textContent = 'AI ✗'; $('pill-ai').className = 'pill bad';
+    toast('Model error: ' + e.message.substring(0, 80), 'err');
+  }
+}
+
+async function getCaption(photo) {
+  const dt = photo.exif && photo.exif.dateObj ? photo.exif.dateObj : null;
+  const evName = document.getElementById('event-name').value.trim();
+  const faceCount = (photo.faces && photo.faces.length) ? photo.faces.length : 0;
+
+  // Build structured EXIF facts
+  const dateStr = dt ? dt.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'long', year:'numeric' }) : null;
+  const timeStr = dt ? dt.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }) : null;
+  const gpsStr  = (photo.exif && photo.exif.lat != null) ? fmtGPS(photo.exif.lat, photo.exif.lon) : null;
+  const cam     = [photo.exif && photo.exif.make, photo.exif && photo.exif.model].filter(Boolean).join(' ') || null;
+
+  // SINGLE SOURCE OF TRUTH: read from per-photo DOM inputs (pre-filled from EXIF, editable)
+  var pdElC = document.getElementById('pd_' + photo.id);
+  var ptElC = document.getElementById('pt_' + photo.id);
+  var plElC = document.getElementById('pl_' + photo.id);
+
+  var effectiveDateStr = null;
+  var effectiveTimeStr = null;
+  var effectiveGps     = null;
+
+  if (pdElC && pdElC.value) {
+    var mdc = new Date(pdElC.value + 'T00:00:00');
+    if (!isNaN(mdc)) effectiveDateStr = mdc.toLocaleDateString('en-GB', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+  }
+  if (ptElC && ptElC.value)          effectiveTimeStr = ptElC.value;
+  if (plElC && plElC.value.trim())   effectiveGps     = plElC.value.trim();
+
+  // GPS coords override if no location text
+  if (!effectiveGps && photo.exif && photo.exif.lat != null) {
+    effectiveGps = Math.abs(photo.exif.lat).toFixed(4) + (photo.exif.lat>=0?'N':'S')
+                 + ', ' + Math.abs(photo.exif.lon).toFixed(4) + (photo.exif.lon>=0?'E':'W');
+  }
+
+  // Sidebar global fallback
+  if (!effectiveDateStr) { var sdvc=document.getElementById('manual-date').value; if(sdvc){var sdc=new Date(sdvc+'T00:00:00');if(!isNaN(sdc))effectiveDateStr=sdc.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});} }
+  if (!effectiveTimeStr) { var stvc=document.getElementById('manual-time').value; if(stvc) effectiveTimeStr=stvc; }
+  if (!effectiveGps)     { var slvc=document.getElementById('manual-location').value.trim(); if(slvc) effectiveGps=slvc; }
+
+  // If still no usable data, build minimal caption without AI
+  if (!evName && !effectiveDateStr && !effectiveGps) {
+    return 'POE Event Photo';
+  }
+
+  // Build facts list — EXIF/manual data IS the caption, AI just formats it
+  var facts = [];
+  if (evName)            facts.push('Event: ' + evName);
+  if (effectiveDateStr)  facts.push('Date: ' + effectiveDateStr);
+  if (effectiveTimeStr)  facts.push('Time: ' + effectiveTimeStr);
+  if (effectiveGps)      facts.push('Location: ' + effectiveGps);
+  if (faceCount > 0)     facts.push('Attendees: ' + faceCount);
+  if (cam)               facts.push('Camera: ' + cam);
+
+  // Prompt: AI formats the facts into a caption, never describes the image
+  var prompt = 'Write ONE concise photo caption for a POE event report.\n'
+    + 'Use ONLY the facts provided. MUST include the date and time. '
+    + 'Include location if given. Do NOT describe image content. No quotes. Max 20 words.\n\n'
+    + 'FACTS:\n' + facts.join('\n') + '\n\nCaption:';
+
+  var raw;
+  if (NativeAI.isNative) {
+    var gen = await NativeAI.generate(prompt);
+    raw = (gen.text || '').trim();
+  } else {
+    var payload = {
+      model: aiModel(),
+      max_tokens: 80,
+      temperature: 0.2,
+      messages: [{ role: 'user', content: prompt }]
+    };
+
+    var r = await fetch(aiUrl(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!r.ok) {
+      var t = await r.text().catch(function() { return ''; });
+      throw new Error('AI ' + r.status + ': ' + t.substring(0, 80));
+    }
+
+    var d = await r.json();
+    raw = ((d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) || '').trim();
+  }
+  raw = raw.replace(/^["'`]|["'`]$/g, '').replace(/^Caption:\s*/i, '').trim();
+
+  // Fallback: build caption directly from facts if AI returns nothing useful
+  if (!raw || raw.length < 4) {
+    var parts = [];
+    if (evName)           parts.push(evName);
+    if (effectiveDateStr) parts.push(effectiveDateStr);
+    if (effectiveTimeStr) parts.push('at ' + effectiveTimeStr);
+    if (effectiveGps)     parts.push(effectiveGps);
+    return parts.join(' — ');
+  }
+  return raw;
+}
+
+// ═══ FILE HANDLING ═══
+function onDrop(e) { e.preventDefault(); $('drop-zone').classList.remove('drag'); handleFiles(Array.from(e.dataTransfer.files)); }
+function onFiles(e) { handleFiles(Array.from(e.target.files)); }
+function onMoreFiles(e) { handleFiles(Array.from(e.target.files)); }
+
+async function handleFiles(files) {
+  const imgs = files.filter(f => f.type.startsWith('image/'));
+  if (!imgs.length) return;
+  $('drop-zone').style.display = 'none';
+  $('empty-hint').style.display = 'none';
+  $('toolbar').style.display = 'flex';
+  $('stats-row').style.display = 'flex';
+  for (const f of imgs) {
+    const id = 'p' + Date.now() + Math.random().toString(36).slice(2,6);
+    const exif = await readExif(f);
+    const photo = { id, file:f, exif, img:null, originalDataUrl:null,
+      faces:[], myIdxs:[], status:'pending', caption:'', blurCount:0, keptCount:0,
+      processedCanvas:null };
+    G.photos.push(photo);
+    addPhotoRow(photo);
+
+    // Reverse geocode GPS coordinates → human-readable location (async, non-blocking)
+    if (exif.lat != null) {
+      reverseGeocode(exif.lat, exif.lon).then(function(placeName) {
+        if (!placeName) return;
+        // Update the location input field with the city name
+        const plEl = document.getElementById('pl_' + photo.id);
+        if (plEl) {
+          plEl.value = placeName;
+          updatePhotoMeta(photo.id);
+        }
+        // Update the header display
+        const dispLoc = document.getElementById('disp-loc_' + photo.id);
+        if (dispLoc) {
+          dispLoc.textContent = '📍 ' + placeName;
+          dispLoc.style.color = 'var(--t1)';
+        }
+        // Update stored manualMeta
+        if (photo.manualMeta) photo.manualMeta.location = placeName;
+        toast('📍 ' + placeName, 'ok');
+      });
+    }
+
+    // Load img async
+    fileToImg(f).then(img => {
+      photo.img = img;
+      // Draw thumbnail
+      const tc = document.createElement('canvas');
+      tc.width = img.naturalWidth; tc.height = img.naturalHeight;
+      tc.getContext('2d').drawImage(img, 0, 0);
+      photo.originalDataUrl = tc.toDataURL('image/jpeg', 0.85);
+      const thumb = $('thumb_'+id);
+      if (thumb) thumb.src = photo.originalDataUrl;
+      // Also set before-canvas
+      const bc = $('bc_'+id);
+      if (bc) { bc.width=img.naturalWidth; bc.height=img.naturalHeight; bc.getContext('2d').drawImage(img,0,0); }
+    });
+  }
+  updateStats();
+  toast(`${imgs.length} photo${imgs.length>1?'s':''} added`, 'ok');
+}
+
+// ═══ EXIF ═══
+async function readExif(file) {
+  const result = { dateObj:null, lat:null, lon:null, make:null, model:null, source:null };
+
+  // ── 1. Try EXIF (best source — original JPEGs from camera) ──
+  try {
+    const d = await exifr.parse(file, {tiff:true, exif:true, gps:true, ifd0:true});
+    if (d) {
+      const dateObj = d.DateTimeOriginal || d.DateTime || d.CreateDate || null;
+      if (dateObj) {
+        result.dateObj = dateObj instanceof Date ? dateObj : new Date(dateObj);
+        result.source  = 'EXIF';
+      }
+      result.lat   = d.latitude  ?? null;
+      result.lon   = d.longitude ?? null;
+      result.make  = d.Make  || null;
+      result.model = d.Model || null;
+    }
+  } catch(_) {}
+
+  // ── 2. Filename timestamp (Android/web: 1774567194368_image.png) ──
+  // Pattern: 10-13 digit unix timestamp at start of filename
+  if (!result.dateObj) {
+    const tsMatch = file.name.match(/^(\d{10,13})[_\-]/);
+    if (tsMatch) {
+      const ts = parseInt(tsMatch[1]);
+      const dt = new Date(ts > 9999999999 ? ts : ts * 1000); // ms vs seconds
+      if (dt.getFullYear() > 2000 && dt.getFullYear() < 2100) {
+        result.dateObj = dt;
+        result.source  = 'filename-timestamp';
+      }
+    }
+  }
+
+  // ── 3. Filename date patterns ──
+  // Pattern: IMG_20260326_143022.jpg  or  2026-03-26_14-30.jpg  or  20260326_143022.jpg
+  if (!result.dateObj) {
+    const patterns = [
+      /(?:IMG|VID|PANO|BURST)[_-](\d{4})(\d{2})(\d{2})[_-](\d{2})(\d{2})(\d{2})/i,  // Android IMG_YYYYMMDD_HHMMSS
+      /(\d{4})[_\-](\d{2})[_\-](\d{2})[T_\-](\d{2})[_:\-](\d{2})/,               // 2026-03-26_14-30
+      /(\d{4})(\d{2})(\d{2})[_\-](\d{2})(\d{2})(\d{2})/,                            // 20260326_143022
+      /WhatsApp.Image.(\d{4})-(\d{2})-(\d{2})/i,                                         // WhatsApp Image 2026-03-26
+    ];
+    for (const pat of patterns) {
+      const m = file.name.match(pat);
+      if (m) {
+        try {
+          const yr = parseInt(m[1]), mo = parseInt(m[2])-1, dy = parseInt(m[3]);
+          const hr = m[4] ? parseInt(m[4]) : 0;
+          const mi = m[5] ? parseInt(m[5]) : 0;
+          const dt = new Date(yr, mo, dy, hr, mi, 0);
+          if (dt.getFullYear() > 2000) {
+            result.dateObj = dt;
+            result.source  = 'filename-pattern';
+            break;
+          }
+        } catch(_) {}
+      }
+    }
+  }
+
+  // ── 4. PNG tIME chunk ──
+  if (!result.dateObj && file.name.toLowerCase().endsWith('.png')) {
+    try {
+      const buf = await file.arrayBuffer();
+      const view = new DataView(buf);
+      let i = 8;
+      while (i < Math.min(view.byteLength - 12, 200000)) {
+        const len  = view.getUint32(i);
+        const type = String.fromCharCode(view.getUint8(i+4), view.getUint8(i+5),
+                                          view.getUint8(i+6), view.getUint8(i+7));
+        if (type === 'tIME' && len === 7) {
+          const yr = view.getUint16(i+8);
+          const mo = view.getUint8(i+10) - 1;
+          const dy = view.getUint8(i+11);
+          const hr = view.getUint8(i+12);
+          const mi = view.getUint8(i+13);
+          const se = view.getUint8(i+14);
+          result.dateObj = new Date(yr, mo, dy, hr, mi, se);
+          result.source  = 'PNG-tIME';
+          break;
+        }
+        i += 12 + len;
+      }
+    } catch(_) {}
+  }
+
+  return result;
+}
+
+function fmtDate(dt) {
+  if (!dt) return null;
+  return dt.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+function fmtTime(dt) {
+  if (!dt) return null;
+  // Always 24-hour HH:MM, no locale interference
+  return String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0');
+}
+function fmtGPS(lat, lon) {
+  if (lat == null) return null;
+  const la = Math.abs(lat).toFixed(4) + (lat>=0?'°N':'°S');
+  const lo = Math.abs(lon).toFixed(4) + (lon>=0?'°E':'°W');
+  return la + ', ' + lo;
+}
+
+// Reverse geocode: GPS coords → "City, Country" via Nominatim
+async function reverseGeocode(lat, lon) {
+  try {
+    const url = 'https://nominatim.openstreetmap.org/reverse?format=json&lat='
+      + lat + '&lon=' + lon + '&zoom=10&addressdetails=1';
+    const r = await fetch(url, {
+      headers: { 'Accept-Language': 'en', 'User-Agent': 'POEPhotoApp/1.0' }
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    const a = d.address || {};
+    // Build human-readable location: prefer city > town > village > county
+    const city    = a.city || a.town || a.village || a.municipality || a.county || a.state_district || '';
+    const country = a.country || '';
+    if (city && country) return city + ', ' + country;
+    if (city)   return city;
+    if (country) return country;
+    // Fallback to display_name first two parts
+    if (d.display_name) return d.display_name.split(', ').slice(0,2).join(', ');
+    return null;
+  } catch(_) { return null; }
+}
+
+// ═══ RENDER PHOTO ROW ═══
+// Update per-photo manual metadata, refresh header display, show saved indicator
+function updatePhotoMeta(id) {
+  const photo = G.photos.find(p => p.id === id);
+  if (!photo) return;
+  const pdEl = $('pd_'+id);
+  const ptEl = $('pt_'+id);
+  const plEl = $('pl_'+id);
+  if (!pdEl) return;
+  if (!photo.manualMeta) photo.manualMeta = {};
+  photo.manualMeta.date     = pdEl.value;
+  photo.manualMeta.time     = ptEl.value;
+  photo.manualMeta.location = plEl.value.trim();
+  // DOM inputs ARE the source of truth — manualMeta kept in sync for reference only
+
+  // Refresh header meta display
+  const dv = $('disp-date_'+id);
+  const tv = $('disp-time_'+id);
+  const lv = $('disp-loc_'+id);
+  if (dv && pdEl.value) {
+    const dt2 = new Date(pdEl.value + 'T00:00:00');
+    dv.textContent = '?? ' + dt2.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+    dv.style.color = 'var(--t1)';
+  }
+  if (tv && ptEl.value) {
+    tv.textContent = '⏰ ' + ptEl.value;
+    tv.style.color = 'var(--t1)';
+  }
+  if (lv && plEl.value.trim()) {
+    lv.textContent = '?? ' + plEl.value.trim();
+    lv.style.color = 'var(--t1)';
+  }
+
+  // Show saved flash
+  const saved = $('meta-saved_'+id);
+  if (saved) {
+    saved.style.display = 'inline';
+    clearTimeout(saved._t);
+    saved._t = setTimeout(() => { saved.style.display = 'none'; }, 1800);
+  }
+}
+
+function addPhotoRow(photo) {
+  const list = $('photo-list');
+  const div = document.createElement('div');
+  div.className = 'photo-row';
+  div.id = 'row_'+photo.id;
+
+  const dt = photo.exif && photo.exif.dateObj ? photo.exif.dateObj : null;
+  const hasExif = dt !== null;
+  const dateStr = dt ? fmtDate(dt) : null;
+  const timeStr = dt ? fmtTime(dt) : null;
+  const gpsStr  = (photo.exif && photo.exif.lat != null) ? fmtGPS(photo.exif.lat, photo.exif.lon) : null;
+  const cam     = [photo.exif && photo.exif.make, photo.exif && photo.exif.model].filter(Boolean).join(' ');
+  const src     = photo.exif && photo.exif.source ? photo.exif.source : '';
+
+  // Pre-fill inputs: EXIF values if present, else today/now
+  const now      = new Date();
+  const initDate = dt ? dt.toISOString().split('T')[0] : now.toISOString().split('T')[0];
+  const initTime = dt
+    ? (String(dt.getHours()).padStart(2,'0') + ':' + String(dt.getMinutes()).padStart(2,'0'))
+    : (String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0'));
+  const initLoc  = gpsStr || '';
+
+  const inputStyle = 'background:var(--s2);border:1px solid var(--b2);color:var(--t1);' +
+    'padding:8px 10px;border-radius:6px;font-size:13px;width:100%;' +
+    'cursor:pointer;transition:border-color .15s;color-scheme:dark;-webkit-color-scheme:dark;';
+
+  div.innerHTML = `
+    <!-- COLLAPSED HEADER -->
+    <div class="photo-row-hdr" onclick="toggleRow('${photo.id}')">
+      <img class="pr-thumb" id="thumb_${photo.id}" src="" alt="">
+      <div class="pr-info">
+        <div class="pr-name">${photo.file.name}</div>
+        <div class="pr-meta" id="meta_${photo.id}">
+          ${hasExif
+            ? `${dateStr ? '<span id="disp-date_'+photo.id+'">📅 '+dateStr+'</span>' : '<span id="disp-date_'+photo.id+'" style="color:var(--t3)">📅 —</span>'}
+               ${timeStr ? '<span id="disp-time_'+photo.id+'">⏰ '+timeStr+'</span>' : '<span id="disp-time_'+photo.id+'" style="color:var(--t3)">⏰ —</span>'}
+               <span id="disp-loc_${photo.id}" style="color:var(--t3)">📍 locating…</span>
+               ${cam ? '<span>📷 '+cam+'</span>' : ''}
+               <span style="color:var(--grn);font-size:10px;opacity:.7">[${src||'EXIF'}]</span>`
+            : `<span id="disp-date_${photo.id}" style="color:var(--gold)">📅 No date</span>
+               <span id="disp-time_${photo.id}" style="color:var(--gold)">⏰ No time</span>
+               <span id="disp-loc_${photo.id}" style="color:var(--gold)">📍 No location</span>`
+          }
+        </div>
+      </div>
+      <div class="pr-chips" id="chips_${photo.id}">
+        <span class="chip ${hasExif ? 'chip-done' : 'chip-proc'}">${hasExif ? src||'EXIF ✓' : 'No metadata'}</span>
+      </div>
+      <div class="pr-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-p" style="padding:6px 12px;font-size:12px" onclick="processOne('${photo.id}')">⚡</button>
+        <button class="btn btn-s" style="padding:6px 12px;font-size:12px" onclick="dlOne('${photo.id}')">⬇</button>
+        <button class="btn btn-s" style="padding:6px 12px;font-size:12px" onclick="openLB('${photo.id}')">🔍</button>
+        <button class="btn btn-d" onclick="removeRow('${photo.id}')">✕</button>
+      </div>
+      <div class="pr-expand" id="exp_${photo.id}">▼</div>
+    </div>
+
+    <!-- EXPANDED BODY -->
+    <div class="photo-row-body" id="body_${photo.id}">
+
+      <!-- ALWAYS-VISIBLE EDIT BAR -->
+      <div id="edit-bar_${photo.id}"
+        onclick="event.stopPropagation()"
+        onmousedown="event.stopPropagation()"
+        style="background:var(--s2);border:1px solid var(--b2);border-radius:9px;
+        padding:14px 16px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-size:11px;font-weight:600;color:var(--cyan);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;">
+            ✏ Date / Time / Location
+          </span>
+          <span style="font-size:10px;color:var(--t3);">
+            ${hasExif ? '['+( src||'EXIF')+'] auto-filled — edit if needed' : '⚠ No metadata found — please fill in'}
+          </span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <label style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:5px;">
+              📅 Date
+              <span style="font-size:10px;color:var(--t3);">click to pick</span>
+            </label>
+            <input type="date" id="pd_${photo.id}" value="${initDate}"
+              style="${inputStyle}"
+              onmousedown="event.stopPropagation()"
+              onclick="event.stopPropagation();try{this.showPicker()}catch(e){}"
+              onfocus="this.style.borderColor='var(--cyan)'"
+              onblur="this.style.borderColor='var(--b2)'"
+              onkeydown="event.stopPropagation()"
+              onchange="updatePhotoMeta('${photo.id}')">
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <label style="font-size:11px;color:var(--t2);display:flex;align-items:center;gap:5px;">
+              ⏰ Time
+              <span style="font-size:10px;color:var(--t3);">click to pick</span>
+            </label>
+            <input type="time" id="pt_${photo.id}" value="${initTime}"
+              style="${inputStyle}"
+              onmousedown="event.stopPropagation()"
+              onclick="event.stopPropagation();try{this.showPicker()}catch(e){}"
+              onfocus="this.style.borderColor='var(--cyan)'"
+              onblur="this.style.borderColor='var(--b2)'"
+              onkeydown="event.stopPropagation()"
+              onchange="updatePhotoMeta('${photo.id}')">
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:5px;">
+            <label style="font-size:11px;color:var(--t2);">📍 Location</label>
+            <div class="loc-wrap" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">
+              <input type="text" id="pl_${photo.id}" value="${initLoc}"
+                placeholder="e.g. Riyadh, Saudi Arabia"
+                style="${inputStyle}"
+                autocomplete="off"
+                onclick="event.stopPropagation();this.focus()"
+                onmousedown="event.stopPropagation()"
+                onfocus="this.style.borderColor='var(--cyan)'"
+                onblur="setTimeout(()=>hideLoc('${photo.id}'),180);this.style.borderColor='var(--b2)';updatePhotoMeta('${photo.id}')"
+                oninput="event.stopPropagation();updatePhotoMeta('${photo.id}');searchLoc('${photo.id}',this.value)"
+                onkeydown="handleLocKey(event,'${photo.id}')"
+                onchange="updatePhotoMeta('${photo.id}')">
+              <div class="loc-dropdown" id="loc-dd_${photo.id}" style="display:none"></div>
+            </div>
+          </div>
+
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-p" style="padding:5px 14px;font-size:12px"
+            onclick="updatePhotoMeta('${photo.id}');reprocess('${photo.id}')">
+            ✓ Apply &amp; Re-process
+          </button>
+          <span id="meta-saved_${photo.id}" style="font-size:11px;color:var(--grn);display:none;">✓ Saved</span>
+        </div>
+      </div>
+
+      <!-- SIDE BY SIDE -->
+      <div class="sbs-wrap">
+        <div class="sbs-panel">
+          <div class="sbs-label">⬛ Before — Original</div>
+          <div class="sbs-canvas-wrap">
+            <canvas id="bc_${photo.id}"></canvas>
+          </div>
+        </div>
+        <div class="sbs-panel">
+          <div class="sbs-label">✅ After — Processed (click face box to toggle)</div>
+          <div class="sbs-canvas-wrap after" style="position:relative">
+            <canvas id="ac_${photo.id}"></canvas>
+            <div class="face-overlay" id="fo_${photo.id}"></div>
+            <div class="fbox-hint" id="fbhint_${photo.id}" style="display:none">
+              🔴 click = blur · 🟢 click = keep (you)
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="caption-box" id="cap_${photo.id}"></div>
+      <div class="row-actions">
+        <button class="btn btn-p" onclick="processOne('${photo.id}')">⚡ Process</button>
+        <button class="btn btn-s" onclick="dlOne('${photo.id}')">⬇ Download</button>
+        <button class="btn btn-s" onclick="openLB('${photo.id}')">🔍 Fullscreen</button>
+        <button class="btn btn-s" onclick="reprocess('${photo.id}')">🔄 Re-process</button>
+      </div>
+    </div>`;
+
+  list.appendChild(div);
+
+  // Initialize manualMeta immediately with EXIF values so overlay always has data
+  photo.manualMeta = {
+    date:     initDate,
+    time:     initTime,
+    location: initLoc
+  };
+
+  // Always auto-expand so user sees the edit bar
+  setTimeout(() => {
+    const body = $('body_'+photo.id);
+    const exp  = $('exp_'+photo.id);
+    if (body && exp) { body.classList.add('open'); exp.textContent = '▲'; }
+  }, 150);
+}
+
+function toggleRow(id) {
+  const body = $('body_'+id);
+  const exp  = $('exp_'+id);
+  const open = body.classList.toggle('open');
+  exp.textContent = open ? '▲' : '▼';
+  if (open) {
+    // Re-draw before-canvas if img ready
+    const photo = G.photos.find(p=>p.id===id);
+    if (photo?.img) {
+      const bc = $('bc_'+id);
+      if (bc && !bc.width) {
+        bc.width=photo.img.naturalWidth; bc.height=photo.img.naturalHeight;
+        bc.getContext('2d').drawImage(photo.img,0,0);
+      }
+    }
+  }
+}
+
+// ═══ PROCESS ALL ═══
+async function processAll() {
+  if (!G.modelsOK) { toast('Face detection models still loading…', 'err'); return; }
+  const pending = G.photos.filter(p => p.status !== 'done');
+  if (!pending.length) { toast('All done already ✓', 'ok'); return; }
+  $('btn-all').disabled = true;
+  $('prog-wrap').style.display = 'block';
+  for (let i=0; i<pending.length; i++) {
+    setProgress(Math.round(i/pending.length*100),
+      `Photo ${i+1}/${pending.length}: ${pending[i].file.name}`);
+    await processOne(pending[i].id);
+    await sleep(30);
+  }
+  setProgress(100, '✓ All processed!');
+  setTimeout(() => { $('prog-wrap').style.display='none'; }, 2000);
+  $('btn-all').disabled = false;
+  $('btn-zip').disabled = false;
+  var tbDl = $('btn-dl-all-toolbar');
+  if (tbDl) tbDl.disabled = false;
+  toast(`All ${pending.length} photos processed ✓`, 'ok');
+}
+
+// ═══ PROCESS ONE ═══
+async function processOne(id) {
+  const photo = G.photos.find(p=>p.id===id);
+  if (!photo) return;
+  if (!photo.img) { toast('Image not ready yet', 'err'); return; }
+  if (!G.modelsOK) { toast('Face models still loading…', 'err'); return; }
+
+  setRowStatus(id, 'processing');
+  setChips(id, [{ label:'⟳ detecting', cls:'chip-proc' }]);
+
+  // ── 1. Detect faces ──
+  const dets = await faceapi
+    .detectAllFaces(photo.img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.25 }))
+    .withFaceLandmarks()
+    .withFaceDescriptors();
+  photo.faces = dets;
+
+  // ── 2. Identify your face ──
+  photo.myIdxs = [];
+  if (G.refDesc && dets.length) {
+    const thresh = parseFloat($('thresh').value);
+    const matcher = new faceapi.FaceMatcher(
+      [new faceapi.LabeledFaceDescriptors('me',[G.refDesc])], thresh);
+    dets.forEach((d,i) => {
+      if (matcher.findBestMatch(d.descriptor).label === 'me') photo.myIdxs.push(i);
+    });
+  }
+
+  // ── 3. Draw processed image ──
+  const ac = $('ac_'+id);
+  ac.width  = photo.img.naturalWidth;
+  ac.height = photo.img.naturalHeight;
+  const ctx = ac.getContext('2d');
+  ctx.drawImage(photo.img, 0, 0);
+
+  photo.blurCount = 0; photo.keptCount = 0;
+  dets.forEach((det,i) => {
+    if (photo.myIdxs.includes(i)) { photo.keptCount++; return; }
+    applyBlur(ctx, det.detection.box, ac.width, ac.height);
+    photo.blurCount++;
+  });
+
+  // ── 4. AI Caption FIRST (so it is available when overlay is drawn) ──
+  photo.caption = '';
+  if (isOn('tog-caption') && (NativeAI.isNative || aiUrl().length > 10)) {
+    setChips(id, [{ label: 'AI caption...', cls: 'chip-proc' }]);
+    try {
+      photo.caption = await getCaption(photo);
+    } catch(captionErr) {
+      console.warn('Caption skipped:', captionErr.message);
+    }
+    // Show caption text in the card sidebar too
+    var capEl = $('cap_'+id);
+    if (photo.caption && capEl) {
+      capEl.textContent = 'AI caption: ' + photo.caption;
+      capEl.style.display = 'block';
+    }
+  }
+
+  // ── 5. EXIF overlay + caption rendered onto canvas ──
+  drawOverlay(ctx, photo, ac.width, ac.height);
+
+  photo.processedCanvas = ac;
+  photo.status = 'done';
+
+  // ── 6. Update UI + enable download buttons ──
+  const zipBtn = $('btn-zip');
+  const tbDlBtn = $('btn-dl-all-toolbar');
+  if (zipBtn)  zipBtn.disabled  = false;
+  if (tbDlBtn) tbDlBtn.disabled = false;
+  setRowStatus(id, 'done');
+  setChips(id, [
+    photo.blurCount ? { label:`🙈 ${photo.blurCount} blurred`, cls:'chip-blur' } : null,
+    photo.keptCount ? { label:`✓ ${photo.keptCount} you`,      cls:'chip-keep' } : null,
+    !dets.length    ? { label:'no faces', cls:'chip-proc' }                       : null,
+  ].filter(Boolean));
+
+  addFaceBoxes(photo);
+  updateStats();
+}
+
+function reprocess(id) {
+  const photo = G.photos.find(p=>p.id===id);
+  if (!photo) return;
+  photo.status = 'pending';
+  processOne(id);
+}
+
+// ═══ BLUR ═══
+function applyBlur(ctx, box, W, H) {
+  const pad  = parseFloat($('blur-pad').value) / 100;
+  const str  = parseInt($('blur-str').value);
+  const pixel = isOn('tog-pixel');
+  const x = Math.max(0, box.x - box.width*pad);
+  const y = Math.max(0, box.y - box.height*pad);
+  const w = Math.min(W-x, box.width*(1+pad*2));
+  const h = Math.min(H-y, box.height*(1+pad*2));
+  if (pixel) {
+    const bs = Math.max(4, Math.round(str * 0.9));
+    const d = ctx.getImageData(x,y,w,h);
+    for (let py=0; py<h; py+=bs) for (let px=0; px<w; px+=bs) {
+      const i0=(py*w+px)*4;
+      const [r,g,b,a]=[d.data[i0],d.data[i0+1],d.data[i0+2],d.data[i0+3]];
+      for (let by=0;by<bs&&py+by<h;by++) for (let bx=0;bx<bs&&px+bx<w;bx++) {
+        const i=((py+by)*w+(px+bx))*4; d.data[i]=r;d.data[i+1]=g;d.data[i+2]=b;d.data[i+3]=a;
+      }
+    }
+    ctx.putImageData(d,x,y);
+  } else {
+    ctx.save();
+    for (let pass=0;pass<3;pass++) {
+      ctx.filter=`blur(${str}px)`;
+      ctx.drawImage(ctx.canvas,x,y,w,h,x,y,w,h);
+    }
+    ctx.filter='none'; ctx.restore();
+  }
+}
+
+// ═══ OVERLAY ═══
+function drawOverlay(ctx, photo, W, H) {
+  const evName = document.getElementById('event-name').value.trim();
+  const dt = photo.exif && photo.exif.dateObj ? photo.exif.dateObj : null;
+  const fsPref = document.getElementById('ov-fontsize').value;
+  const fs = fsPref === 'auto' ? Math.max(14, Math.round(W * 0.022)) : parseInt(fsPref);
+  const margin = fs * 0.9;
+  const color = document.getElementById('ov-color').value;
+  const pos = document.getElementById('ov-pos').value;
+
+  // SINGLE SOURCE OF TRUTH: always read from per-photo input fields
+  // They are pre-filled from EXIF/filename on load, editable by user at any time
+  var ovDate = null, ovTime = null, ovGps = null;
+
+  // Read live from the DOM inputs for this photo
+  var pdEl2 = document.getElementById('pd_' + photo.id);
+  var ptEl2 = document.getElementById('pt_' + photo.id);
+  var plEl2 = document.getElementById('pl_' + photo.id);
+
+  if (pdEl2 && pdEl2.value) {
+    var md = new Date(pdEl2.value + 'T00:00:00');
+    if (!isNaN(md)) ovDate = md.toLocaleDateString('en-GB', {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
+  }
+  if (ptEl2 && ptEl2.value) {
+    ovTime = ptEl2.value;  // HH:MM already formatted
+  }
+  if (plEl2 && plEl2.value.trim()) {
+    ovGps = plEl2.value.trim();
+  }
+
+  // GPS coords from EXIF override location text if present and location field is empty
+  if (!ovGps && photo.exif && photo.exif.lat != null) {
+    ovGps = Math.abs(photo.exif.lat).toFixed(4) + (photo.exif.lat >= 0 ? 'N' : 'S')
+          + ', ' + Math.abs(photo.exif.lon).toFixed(4) + (photo.exif.lon >= 0 ? 'E' : 'W');
+  }
+
+  // Fallback to sidebar globals only if per-photo inputs don't exist (shouldn't happen)
+  if (!ovDate) {
+    var sdv = document.getElementById('manual-date').value;
+    if (sdv) { var sd = new Date(sdv + 'T00:00:00'); if (!isNaN(sd)) ovDate = sd.toLocaleDateString('en-GB', {weekday:'short', day:'2-digit', month:'short', year:'numeric'}); }
+  }
+  if (!ovTime) { var stv = document.getElementById('manual-time').value; if (stv) ovTime = stv; }
+  if (!ovGps)  { var slv = document.getElementById('manual-location').value.trim(); if (slv) ovGps = slv; }
+
+  // AI caption — merged into same badge only if toggled on
+  var cap = (photo.caption || '').trim();
+  var showCaption = cap && document.getElementById('tog-caption').classList.contains('on');
+
+  // Build ONE unified lines array
+  var lines = [];
+  if (evName)                                                                    lines.push(evName);
+  if (document.getElementById('tog-date').classList.contains('on') && ovDate) lines.push('Date: '     + ovDate);
+  if (document.getElementById('tog-time').classList.contains('on') && ovTime) lines.push('Time: '     + ovTime);
+  if (document.getElementById('tog-gps').classList.contains('on')  && ovGps)  lines.push('Location: ' + ovGps);
+  // Caption is shown in the card below — NOT repeated on the photo overlay
+
+  if (!lines.length) return;
+
+  // Helper: rounded rectangle
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y); ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+    ctx.lineTo(x+w, y+h-r); ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+    ctx.lineTo(x+r, y+h); ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+    ctx.lineTo(x, y+r); ctx.quadraticCurveTo(x, y, x+r, y);
+    ctx.closePath();
+  }
+
+  ctx.save();
+  ctx.font = 'bold ' + fs + 'px Arial,sans-serif';
+
+  var lineH  = fs * 1.6;
+  var padX   = fs * 0.85;
+  var padY   = fs * 0.65;
+  var totalH = lines.length * lineH + padY * 2;
+  var maxW   = 0;
+  lines.forEach(function(l) { var w = ctx.measureText(l).width; if (w > maxW) maxW = w; });
+  maxW = Math.min(maxW + padX * 2, W - margin * 2);
+
+  var bx, by;
+  if      (pos === 'br') { bx = W - maxW - margin; by = H - totalH - margin; }
+  else if (pos === 'bl') { bx = margin;             by = H - totalH - margin; }
+  else if (pos === 'tr') { bx = W - maxW - margin; by = margin; }
+  else                   { bx = margin;             by = margin; }
+
+  // Single dark background badge
+  ctx.fillStyle = 'rgba(0,0,0,0.62)';
+  rr(bx, by, maxW, totalH, fs * 0.4);
+  ctx.fill();
+
+  // All lines in the user's chosen color (white by default)
+  ctx.fillStyle = color;
+  ctx.textBaseline = 'middle';
+  ctx.save();
+  rr(bx, by, maxW, totalH, fs * 0.4);
+  ctx.clip();
+  lines.forEach(function(l, idx) {
+    ctx.fillText(l, bx + padX, by + padY + idx * lineH + lineH / 2);
+  });
+  ctx.restore();
+
+  ctx.restore();
+}
+
+
+// ═══ FACE CLICK BOXES (on After canvas) ═══
+function addFaceBoxes(photo) {
+  const fo = $('fo_'+photo.id);
+  const ac = $('ac_'+photo.id);
+  const hint = $('fbhint_'+photo.id);
+  fo.innerHTML = '';
+  if (!photo.faces.length) return;
+  hint.style.display = photo.faces.length > 0 ? 'block' : 'none';
+
+  // Scale rendered vs natural
+  const scaleX = ac.offsetWidth  / ac.width;
+  const scaleY = ac.offsetHeight / ac.height;
+  const pad = parseFloat($('blur-pad').value) / 100;
+
+  photo.faces.forEach((det, i) => {
+    const box = det.detection.box;
+    const isMe = photo.myIdxs.includes(i);
+    const fb = document.createElement('div');
+    fb.className = 'fbox ' + (isMe ? 'keep' : 'blur');
+    fb.style.left   = ((box.x - box.width*pad)   * scaleX) + 'px';
+    fb.style.top    = ((box.y - box.height*pad)   * scaleY) + 'px';
+    fb.style.width  = (box.width  * (1+pad*2)     * scaleX) + 'px';
+    fb.style.height = (box.height * (1+pad*2)     * scaleY) + 'px';
+    const lbl = document.createElement('div');
+    lbl.className = 'fbox-label';
+    lbl.textContent = isMe ? 'YOU' : `#${i+1}`;
+    fb.appendChild(lbl);
+    fb.onclick = () => toggleFace(photo.id, i);
+    fo.appendChild(fb);
+  });
+}
+
+function toggleFace(id, faceIdx) {
+  const photo = G.photos.find(p=>p.id===id);
+  if (!photo?.img) return;
+  const isMe = photo.myIdxs.includes(faceIdx);
+  if (isMe) photo.myIdxs = photo.myIdxs.filter(i=>i!==faceIdx);
+  else {
+    photo.myIdxs.push(faceIdx);
+    if (!G.refDesc) {
+      G.refDesc = photo.faces[faceIdx].descriptor;
+      $('pill-ref').textContent='Ref ✓ (manual)'; $('pill-ref').className='pill on';
+    }
+  }
+  // Redraw
+  const ac = $('ac_'+id);
+  const ctx = ac.getContext('2d');
+  ctx.drawImage(photo.img, 0, 0);
+  photo.blurCount = 0; photo.keptCount = 0;
+  photo.faces.forEach((det,i) => {
+    if (photo.myIdxs.includes(i)) { photo.keptCount++; }
+    else { applyBlur(ctx, det.detection.box, ac.width, ac.height); photo.blurCount++; }
+  });
+  drawOverlay(ctx, photo, ac.width, ac.height);
+  photo.processedCanvas = ac;
+  addFaceBoxes(photo);
+  setChips(id, [
+    photo.blurCount ? { label:`🙈 ${photo.blurCount} blurred`, cls:'chip-blur' } : null,
+    photo.keptCount ? { label:`✓ ${photo.keptCount} you`,      cls:'chip-keep' } : null,
+  ].filter(Boolean));
+  updateStats();
+  toast(isMe ? '✓ Marked as YOU — no longer blurred' : 'Marked as attendee — blurred', 'ok');
+}
+
+// ═══ DOWNLOAD ═══
+// ─── Save helpers — use File System Access API (asks for location) ───
+// Falls back to standard <a> download if API not supported
+async function saveBlob(blob, suggestedName, mimeType) {
+  // File System Access API — shows native save dialog
+  if (window.showSaveFilePicker) {
+    try {
+      const ext  = suggestedName.split('.').pop().toLowerCase();
+      const desc = ext === 'zip' ? 'ZIP Archive' : 'JPEG Image';
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [{ description: desc, accept: { [mimeType]: ['.' + ext] } }],
+        startIn: 'pictures'
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      return true;
+    } catch(e) {
+      if (e.name === 'AbortError') return false; // user cancelled
+      // Fall through to legacy download
+    }
+  }
+  // Legacy fallback — browser chooses location (usually Downloads folder)
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = suggestedName;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  return true;
+}
+
+async function dlOne(id) {
+  const photo = G.photos.find(p => p.id === id);
+  if (!photo?.processedCanvas) { toast('Process this photo first ⚡', 'err'); return; }
+  const name = 'POE_' + photo.file.name.replace(/\.[^.]+$/, '') + '_processed.jpg';
+  photo.processedCanvas.toBlob(async (blob) => {
+    const saved = await saveBlob(blob, name, 'image/jpeg');
+    if (saved) toast('Saved: ' + name, 'ok');
+  }, 'image/jpeg', 0.93);
+}
+
+async function downloadZip() {
+  const done = G.photos.filter(p => p.processedCanvas);
+  if (!done.length) { toast('No processed photos yet — click ⚡ Process All first', 'err'); return; }
+  toast('Building ZIP for ' + done.length + ' photo(s)…');
+  try {
+    const zip = new JSZip();
+    const folder = zip.folder('POE_Processed');
+    for (const p of done) {
+      await new Promise((res, rej) => {
+        p.processedCanvas.toBlob(blob => {
+          if (!blob) { rej(new Error('Canvas toBlob failed')); return; }
+          const reader = new FileReader();
+          reader.onload = () => {
+            const b64 = reader.result.split(',')[1];
+            folder.file('POE_' + p.file.name.replace(/\.[^.]+$/, '') + '_processed.jpg',
+              b64, { base64: true });
+            res();
+          };
+          reader.onerror = rej;
+          reader.readAsDataURL(blob);
+        }, 'image/jpeg', 0.93);
+      });
+    }
+    const blob = await zip.generateAsync({ type: 'blob',
+      compression: 'DEFLATE', compressionOptions: { level: 6 } });
+    const zipName = 'POE_Photos_' + new Date().toISOString().split('T')[0] + '.zip';
+    const saved = await saveBlob(blob, zipName, 'application/zip');
+    if (saved) toast('ZIP saved — ' + done.length + ' photos ✓', 'ok');
+  } catch(e) {
+    console.error('ZIP error:', e);
+    toast('ZIP failed: ' + e.message, 'err');
+  }
+}
+
+// ═══ LIGHTBOX ═══
+function openLB(id) {
+  const photo = G.photos.find(p=>p.id===id);
+  if (!photo) return;
+  G.lbId = id;
+  $('lb-title').textContent = photo.file.name;
+  $('lb-before').src = photo.originalDataUrl || '';
+  $('lb-after').src  = photo.processedCanvas
+    ? photo.processedCanvas.toDataURL('image/jpeg',.95) : (photo.originalDataUrl||'');
+  $('lb-dl').onclick = () => dlOne(id);
+  $('lightbox').classList.add('show');
+}
+function closeLB(e) {
+  if (e.target === $('lightbox')) $('lightbox').classList.remove('show');
+}
+
+// ═══ UI HELPERS ═══
+function setRowStatus(id, status) {
+  const row = $('row_'+id);
+  row.className = 'photo-row ' + status;
+}
+function setChips(id, chips) {
+  $('chips_'+id).innerHTML = chips.map(c =>
+    `<span class="chip ${c.cls}">${c.label}</span>`
+  ).join('');
+}
+function removeRow(id) {
+  G.photos = G.photos.filter(p=>p.id!==id);
+  const row = $('row_'+id); if (row) row.remove();
+  if (!G.photos.length) {
+    $('drop-zone').style.display='block';
+    $('empty-hint').style.display='block';
+    $('toolbar').style.display='none';
+    $('stats-row').style.display='none';
+  }
+  updateStats();
+}
+function clearAll() {
+  G.photos = [];
+  $('photo-list').innerHTML = '';
+  $('drop-zone').style.display='block';
+  $('empty-hint').style.display='block';
+  $('toolbar').style.display='none';
+  $('stats-row').style.display='none';
+  updateStats();
+}
+function updateStats() {
+  $('st-total').textContent   = G.photos.length;
+  $('st-done').textContent    = G.photos.filter(p=>p.status==='done').length;
+  $('st-faces').textContent   = G.photos.reduce((s,p)=>s+(p.faces?.length||0),0);
+  $('st-blurred').textContent = G.photos.reduce((s,p)=>s+(p.blurCount||0),0);
+  $('st-kept').textContent    = G.photos.reduce((s,p)=>s+(p.keptCount||0),0);
+}
+function setProgress(pct, msg) {
+  $('prog-fill').style.width = pct + '%';
+  $('prog-pct').textContent  = pct + '%';
+  $('prog-msg').textContent  = msg;
+}
+function fileToImg(file) {
+  return new Promise((res,rej) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { URL.revokeObjectURL(url); res(img); };
+    img.onerror = rej; img.src = url;
+  });
+}
+function toast(msg, type='') {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'show' + (type?' '+type:'');
+  setTimeout(()=>t.classList.remove('show'), 3500);
+}
+
+// ═══════════════════════════════════════════════════
+//  LOCATION AUTOCOMPLETE — OpenStreetMap Nominatim
+// ═══════════════════════════════════════════════════
+var _locTimers  = {};
+var _locActive  = {};
+var _locResults = {};
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function pickLocByIdx(el) {
+  var photoId = el.dataset.photo;
+  var idx     = parseInt(el.dataset.idx);
+  var results = _locResults[photoId];
+  if (!results || !results[idx]) return;
+  var parts = results[idx].display_name.split(', ');
+  var main  = parts.slice(0, 2).join(', ');
+  pickLoc(photoId, main);
+}
+
+function searchLoc(id, query) {
+  clearTimeout(_locTimers[id]);
+  var dd = document.getElementById('loc-dd_' + id);
+  if (!query || query.length < 3) { if (dd) dd.style.display = 'none'; return; }
+  _locTimers[id] = setTimeout(async function() {
+    if (dd) { dd.innerHTML = '<div class="loc-loading">Searching...</div>'; dd.style.display = 'block'; }
+    try {
+      var url = 'https://nominatim.openstreetmap.org/search?format=json&q='
+                + encodeURIComponent(query) + '&limit=6&addressdetails=1';
+      var r = await fetch(url, { headers: { 'Accept-Language': 'en', 'User-Agent': 'POEPhotoApp/1.0' } });
+      var results = await r.json();
+      if (!results.length) {
+        dd.innerHTML = '<div class="loc-loading">No results found</div>';
+        return;
+      }
+      _locActive[id] = -1;
+            _locResults[id] = results;
+      dd.innerHTML = results.map(function(res, i) {
+        var parts = res.display_name.split(', ');
+        var main  = parts.slice(0, 2).join(', ');
+        var sub   = parts.slice(2, 5).join(', ');
+        return '<div class="loc-item" data-photo="' + id + '" data-idx="' + i + '"'
+          + ' onmousedown="event.preventDefault()"'
+          + ' onclick="pickLocByIdx(this)">'
+          + '<div class="loc-main">' + escHtml(main) + '</div>'
+          + (sub ? '<div class="loc-sub">' + escHtml(sub) + '</div>' : '')
+          + '</div>';
+      }).join('');;
+      dd.style.display = 'block';
+    } catch(e) {
+      if (dd) dd.innerHTML = '<div class="loc-loading">Search unavailable — type manually</div>';
+    }
+  }, 400);
+}
+
+function pickLoc(id, value) {
+  var inp = document.getElementById('pl_' + id);
+  var dd  = document.getElementById('loc-dd_' + id);
+  if (inp) { inp.value = value; updatePhotoMeta(id); }
+  if (dd)  { dd.style.display = 'none'; }
+}
+
+function hideLoc(id) {
+  var dd = document.getElementById('loc-dd_' + id);
+  if (dd) dd.style.display = 'none';
+}
+
+function handleLocKey(e, id) {
+  e.stopPropagation();
+  var dd = document.getElementById('loc-dd_' + id);
+  if (!dd || dd.style.display === 'none') return;
+  var items = dd.querySelectorAll('.loc-item');
+  if (!items.length) return;
+  var idx = _locActive[id] || -1;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    idx = Math.min(idx + 1, items.length - 1);
+    _locActive[id] = idx;
+    items.forEach(function(el,i){ el.classList.toggle('active', i===idx); });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    idx = Math.max(idx - 1, 0);
+    _locActive[id] = idx;
+    items.forEach(function(el,i){ el.classList.toggle('active', i===idx); });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (idx >= 0 && items[idx]) {
+      pickLocByIdx(items[idx]);
+    } else {
+      hideLoc(id);
+      updatePhotoMeta(id);
+    }
+  } else if (e.key === 'Escape') {
+    hideLoc(id);
+  }
+}
+</script>
+</body>
+</html>

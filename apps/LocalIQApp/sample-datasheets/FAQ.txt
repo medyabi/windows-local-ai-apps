@@ -1,0 +1,16 @@
+Halcyon Micro - Frequently Asked Questions
+
+Q: Can the HM3300 power the HB7 BLE module directly?
+A: Yes. The HM3300 delivers up to 500 mA at 3.3 V, well above the HB7 peak transmit current of about 6.4 mA at 0 dBm. The HB7 supply range is 1.8 V to 3.6 V.
+
+Q: Which parts share I2C bus addresses?
+A: None of the standard addresses conflict. See AN-107 for the full address table.
+
+Q: What is the maximum clock speed of the HF16 flash?
+A: 104 MHz for Fast Read. Dual and Quad I/O modes are also supported.
+
+Q: Do you offer automotive-grade parts?
+A: The HF16-A flash is rated -40 C to 105 C. Other parts are industrial grade.
+
+Q: Where can I find 3D models?
+A: Models are available on request from the Halcyon applications team.

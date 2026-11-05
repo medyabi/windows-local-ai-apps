@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Everything is local: no network of any kind may be used from this page. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://media.hybridmind.local; font-src 'self'; connect-src 'none'; worker-src blob:; frame-src about: blob:; media-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>HybridMind</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8b7bff"/><stop offset="1" stop-color="#3fc1ee"/></linearGradient>
+    <linearGradient id="lgc" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5ad2f5"/><stop offset="1" stop-color="#3c82f0"/></linearGradient>
+    <linearGradient id="lgv" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a08cff"/><stop offset="1" stop-color="#6e5aeb"/></linearGradient>
+    <symbol id="logo" viewBox="0 0 64 64">
+      <rect width="64" height="64" rx="16" fill="#12162a"/>
+      <path d="M27 16a9.5 9.5 0 0 1 17.6-3.4A8.4 8.4 0 0 1 49 28.5H31a7.5 7.5 0 0 1-4-13.7z" fill="url(#lgc)" transform="translate(2 6)"/>
+      <rect x="9" y="29" width="28" height="28" rx="6" fill="#12162a"/>
+      <g fill="#c8beff"><rect x="15" y="26" width="2.4" height="5" rx="1"/><rect x="22" y="26" width="2.4" height="5" rx="1"/><rect x="29" y="26" width="2.4" height="5" rx="1"/><rect x="15" y="55" width="2.4" height="5" rx="1"/><rect x="22" y="55" width="2.4" height="5" rx="1"/><rect x="29" y="55" width="2.4" height="5" rx="1"/><rect x="6" y="36" width="5" height="2.4" rx="1"/><rect x="6" y="43" width="5" height="2.4" rx="1"/><rect x="6" y="50" width="5" height="2.4" rx="1"/><rect x="35" y="36" width="5" height="2.4" rx="1"/><rect x="35" y="43" width="5" height="2.4" rx="1"/><rect x="35" y="50" width="5" height="2.4" rx="1"/></g>
+      <rect x="11" y="31" width="24" height="24" rx="5" fill="url(#lgv)"/>
+      <path d="M23 36.2l1.7 4.1 4.1 1.7-4.1 1.7L23 47.8l-1.7-4.1-4.1-1.7 4.1-1.7z" fill="#12162a"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5L12 5l6.5 6.5"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24"><path d="M20.5 11.5l-8.2 8.2a5 5 0 0 1-7.1-7.1l8.5-8.5a3.3 3.3 0 0 1 4.7 4.7l-8.5 8.5a1.7 1.7 0 0 1-2.4-2.4l7.8-7.8"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.2L4 9M4 4v5h5M4 13a8 8 0 0 0 14.5 4.2L20 15m0 5v-5h-5"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M7 11v9H4v-9zM7 11l4-7a2 2 0 0 1 3.6 1.4L14 9h5a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 18 20H7"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M7 13V4H4v9zM7 13l4 7a2 2 0 0 0 3.6-1.4L14 15h5a2 2 0 0 0 2-2.3l-1.2-7A2 2 0 0 0 18 4H7"/></symbol>
+    <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M9 4h6l-1 6 3 3v2H7v-2l3-3zM12 15v6"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h6"/></symbol>
+    <symbol id="i-brain" viewBox="0 0 24 24"><path d="M9.5 4A3.5 3.5 0 0 0 6 7.5v.3A3.5 3.5 0 0 0 4 11a3.5 3.5 0 0 0 1.4 2.8A3.5 3.5 0 0 0 7 19.5a3 3 0 0 0 5-1.5V6a2.5 2.5 0 0 0-2.5-2zM14.5 4A3.5 3.5 0 0 1 18 7.5v.3A3.5 3.5 0 0 1 20 11a3.5 3.5 0 0 1-1.4 2.8A3.5 3.5 0 0 1 17 19.5a3 3 0 0 1-5-1.5"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><path d="M9.5 4.5v15"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-5 4v-4H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l2 5.2L19.2 10 14 12l-2 5.2L10 12 4.8 10 10 8.2zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V5M7 9l5-5 5 5M5 20h14"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z" fill="currentColor"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
+    <symbol id="i-calc" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8.5 7.5h7M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v16H7.5A2.5 2.5 0 0 0 5 20.5zM5 20.5A2.5 2.5 0 0 0 7.5 23H19v-5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.7"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></symbol>
+    <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/></symbol>
+    <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1.5"/><path d="M5 8.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5M10 12.5h4"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8h.01"/></symbol>
+    <symbol id="i-wand" viewBox="0 0 24 24"><path d="M5 19L16 8M14 6l4 4M7 4v3M5.5 5.5h3M19 14v3M17.5 15.5h3"/></symbol>
+    <symbol id="i-term" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="15" rx="3"/><path d="M7.5 9.5l3 2.5-3 2.5M12.5 15h4"/></symbol>
+    <symbol id="i-table" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M3.5 15h17M10 4.5v15"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4.75 4.75 0 0 1-.5 9.5z"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+  </defs>
+</svg>
+
+<div id="app">
+  <aside id="sidebar" aria-label="Conversations">
+    <div class="sb-top">
+      <div class="brand"><svg class="logo"><use href="#logo"/></svg><div><b>HybridMind</b><small>by Dyabi</small></div></div>
+      <button class="icon-btn" id="btnCollapse" title="Close sidebar (Ctrl+B)" aria-label="Close sidebar"><svg class="i"><use href="#i-panel"/></svg></button>
+    </div>
+    <div class="sb-actions">
+      <button class="sb-btn primary" id="btnNew"><svg class="i"><use href="#i-plus"/></svg>New chat<kbd>Ctrl+Shift+O</kbd></button>
+      <button class="sb-btn" id="btnSearch"><svg class="i"><use href="#i-search"/></svg>Search chats<kbd>Ctrl+K</kbd></button>
+    </div>
+    <div class="sb-scroll" id="sbScroll"></div>
+    <div class="sb-foot">
+      <div class="status" id="status" role="button" tabindex="0" title="Model status"><i class="dot busy" id="dot"></i><span id="statusTxt">Starting…</span></div>
+      <div class="status" id="cloudStatus" role="button" tabindex="0" title="Cloud model" style="flex:none"><i class="dot" id="cdot"></i><span id="cloudTxt">Cloud</span></div>
+      <button class="icon-btn" id="btnMem" title="Memory" aria-label="Memory"><svg class="i"><use href="#i-brain"/></svg></button>
+      <button class="icon-btn" id="btnSettings" title="Settings (Ctrl+,)" aria-label="Settings"><svg class="i"><use href="#i-gear"/></svg></button>
+    </div>
+  </aside>
+
+  <main id="main">
+    <header id="topbar">
+      <button class="icon-btn" id="btnOpen" title="Open sidebar (Ctrl+B)" aria-label="Open sidebar" style="display:none"><svg class="i"><use href="#i-panel"/></svg></button>
+      <div class="seg" id="routeSeg" title="Where this chat runs" style="margin-left:4px"><button data-route="auto">Auto</button><button data-route="device">On-device</button><button data-route="cloud">Cloud</button></div>
+      <button class="pill-btn" id="btnAssistant" title="Choose an assistant"><span id="asstName">HybridMind</span><small id="asstSub">Phi Silica · on-device</small><svg class="i" style="width:15px;height:15px"><use href="#i-chev"/></svg></button>
+      <div id="chatTitle"></div>
+      <span class="badge temp" id="tempBadge" style="display:none"><svg class="i" style="width:14px;height:14px"><use href="#i-lock"/></svg>Temporary</span>
+      <button class="icon-btn" id="btnCtx" title="Context"><svg class="ring" viewBox="0 0 24 24"><circle class="bg" cx="12" cy="12" r="9"/><circle class="fg" id="ringFg" cx="12" cy="12" r="9" transform="rotate(-90 12 12)" stroke-dasharray="56.5" stroke-dashoffset="56.5"/></svg></button>
+      <button class="icon-btn" id="btnTemp" title="Temporary chat (not saved, no memory)" aria-label="Temporary chat"><svg class="i"><use href="#i-lock"/></svg></button>
+      <button class="icon-btn" id="btnTheme" title="Switch theme" aria-label="Switch theme"><svg class="i"><use href="#i-moon"/></svg></button>
+      <button class="icon-btn" id="btnChatMenu" title="Chat options" aria-label="Chat options"><svg class="i"><use href="#i-dots"/></svg></button>
+    </header>
+
+    <section id="stream" aria-live="polite"><div id="thread"></div></section>
+    <button class="jump" id="jump"><svg class="i" style="width:15px;height:15px"><use href="#i-chev"/></svg>Jump to latest</button>
+
+    <div id="composerWrap">
+      <div id="composer">
+        <div id="slash" style="display:none"></div>
+        <div id="attachRow"></div>
+        <textarea id="input" rows="1" placeholder="Message HybridMind…  (type / for commands)" aria-label="Message"></textarea>
+        <div class="cbar">
+          <button class="icon-btn" id="btnAttach" title="Attach files or images" aria-label="Attach files"><svg class="i"><use href="#i-clip"/></svg></button>
+          <button class="icon-btn" id="btnAgent" title="Agent mode: let the cloud model use tools on your allowed folders" aria-label="Agent mode"><svg class="i"><use href="#i-bolt"/></svg></button>
+          <button class="icon-btn" id="btnImage" title="Create a picture (/image)" aria-label="Create a picture"><svg class="i"><use href="#i-image"/></svg></button>
+          <button class="icon-btn" id="btnKnow" title="Files this chat can use" aria-label="Files this chat can use"><svg class="i"><use href="#i-book"/></svg></button>
+          <span class="chip" id="scopeChip" style="display:none"></span>
+          <span class="sp"></span>
+          <button class="send" id="btnSend" title="Send (Enter)" aria-label="Send" disabled><svg class="i"><use href="#i-send"/></svg></button>
+        </div>
+      </div>
+      <div class="hint" id="hint"><span id="hintMain"><b>Hybrid.</b> On-device Phi Silica first; the cloud only when needed — and only with your say-so.</span><span id="hintMem"></span></div>
+    </div>
+  </main>
+</div>
+
+<div id="overlay" role="dialog" aria-modal="true"></div>
+<div class="dropveil" id="dropveil"><div>Drop files to add them to this chat<small>Documents, PDFs, spreadsheets, slides, notes, code and images</small></div></div>
+<div id="toast" role="status"></div>
+
+<script src="js/util.js"></script>
+<script src="js/bridge.js"></script>
+<script src="js/md.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/store.js"></script>
+<script src="js/prompt.js"></script>
+<script src="js/skills.js"></script>
+<script src="js/router.js"></script>
+<script src="js/agent.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/panels.js"></script>
+<script src="js/skills-ui.js"></script>
+<script src="js/hybrid-ui.js"></script>
+<script src="js/agent-ui.js"></script>
+<script src="js/agent-menu.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

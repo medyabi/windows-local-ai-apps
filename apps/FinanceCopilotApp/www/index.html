@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Finance Copilot — On-Device AI</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0d12;--bg2:#10151d;--bg3:#161d27;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e7ebf0;--text2:#8b97a6;--text3:#525d6b;
+  --accent:#22d3c5;--accent2:#0ea89c;--accent-dim:rgba(34,211,197,0.12);--accent-dim2:rgba(34,211,197,0.06);
+  --blue:#60a5fa;--blue-dim:rgba(96,165,250,0.12);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.12);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.12);
+  --violet:#a78bfa;--violet-dim:rgba(167,139,250,0.12);
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --r:10px;--r2:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:52px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:100;}
+.nav-brand{display:flex;align-items:center;gap:10px;}
+.nav-logo{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;}
+.nav-logo svg{width:15px;height:15px;fill:none;stroke:#000;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;}
+.nav-title{font-size:15px;font-weight:500;letter-spacing:-0.02em;}
+.nav-title span{color:var(--accent);}
+.nav-pills{display:flex;gap:6px;align-items:center;}
+.pill{font-size:11px;font-family:var(--mono);padding:3px 9px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);background:var(--bg2);}
+.pill.local{border-color:rgba(34,211,197,0.35);color:var(--accent);background:var(--accent-dim2);display:flex;align-items:center;gap:5px;}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 5px var(--accent);}
+.proveit-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;font-size:11px;font-family:var(--mono);color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.proveit-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.app{flex:1;display:grid;grid-template-columns:1fr 340px;}
+.left{padding:28px;border-right:1px solid var(--border);overflow-y:auto;}
+.right{padding:24px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;}
+
+.sh{font-size:10px;font-family:var(--mono);letter-spacing:0.1em;color:var(--text3);text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.sh::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.upload-zone{border:1px dashed var(--border2);border-radius:var(--r);background:var(--bg2);padding:28px 24px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:16px;position:relative;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-dim2);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.upload-icon{width:38px;height:38px;background:var(--bg3);border-radius:10px;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;}
+.upload-icon svg{width:19px;height:19px;fill:none;stroke:var(--text2);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;}
+.upload-title{font-size:14px;font-weight:500;margin-bottom:4px;}
+.upload-sub{font-size:12px;color:var(--text2);}
+.upload-formats{margin-top:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+.fmt-tag{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:3px;background:var(--bg3);color:var(--text3);border:1px solid var(--border);}
+
+.demo-row{display:flex;gap:8px;margin-bottom:16px;align-items:center;}
+.demo-btn{background:none;border:1px solid var(--border2);border-radius:6px;padding:6px 12px;font-size:11px;font-family:var(--mono);color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.demo-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.doc-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.doc-row{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:9px 12px;}
+.doc-icon{width:26px;height:26px;border-radius:6px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.doc-name{font-size:12px;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.doc-status{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:10px;white-space:nowrap;}
+.doc-status.ok{background:var(--accent-dim);color:var(--accent);}
+.doc-status.busy{background:var(--amber-dim);color:var(--amber);}
+.doc-status.err{background:var(--red-dim);color:var(--red);}
+.doc-remove{background:none;border:none;color:var(--text3);cursor:pointer;font-size:15px;line-height:1;padding:2px 4px;}
+.doc-remove:hover{color:var(--red);}
+
+.privacy-note{display:flex;gap:8px;align-items:flex-start;background:var(--accent-dim2);border:1px solid rgba(34,211,197,0.2);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--accent);line-height:1.5;margin-bottom:16px;}
+
+.run-btn{width:100%;padding:13px;background:var(--accent);color:#000;border:none;border-radius:var(--r);font-size:14px;font-weight:500;font-family:var(--sans);cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-0.01em;}
+.run-btn svg{width:16px;height:16px;flex-shrink:0;}
+.run-btn:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px);}
+.run-btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;}
+
+.err-box{background:var(--red-dim);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:12px 14px;font-size:12px;color:var(--red);line-height:1.6;white-space:pre-wrap;display:none;margin-top:12px;font-family:var(--mono);}
+.err-box.visible{display:block;animation:fadeIn 0.2s ease;}
+
+.results{margin-top:24px;display:none;}
+.results.visible{display:block;animation:fadeIn 0.4s ease;}
+
+.customer-strip{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:18px;}
+.customer-avatar{width:36px;height:36px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;color:var(--accent);flex-shrink:0;}
+.customer-name{font-size:13px;font-weight:500;}
+.customer-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:20px;}
+.profile-tile{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:13px 14px;}
+.profile-tile.warn{border-left:3px solid var(--amber);}
+.profile-tile.risk{border-left:3px solid var(--red);}
+.pt-label{font-size:10px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;}
+.pt-value{font-size:19px;font-weight:500;letter-spacing:-0.02em;}
+.pt-unit{font-size:11px;color:var(--text3);font-family:var(--mono);}
+
+.detected-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.detected-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;}
+.dc-title{font-size:11px;font-family:var(--mono);color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.dc-count{background:var(--bg3);color:var(--text);border-radius:10px;padding:1px 8px;font-size:11px;}
+.dc-list{display:flex;flex-direction:column;gap:5px;}
+.dc-item{font-size:12px;color:var(--text);line-height:1.5;display:flex;justify-content:space-between;gap:8px;}
+.dc-item span:last-child{color:var(--text2);font-family:var(--mono);font-size:11px;white-space:nowrap;}
+.dc-item.flag{color:var(--red);}
+.dc-empty{font-size:11px;color:var(--text3);font-style:italic;}
+
+.questions-box{background:var(--amber-dim);border:1px solid rgba(251,191,36,0.25);border-radius:var(--r);padding:16px;margin-bottom:16px;}
+.questions-box .sh2{font-size:11px;font-family:var(--mono);color:var(--amber);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:10px;}
+.q-item{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px;padding-left:16px;position:relative;}
+.q-item::before{content:'?';position:absolute;left:0;color:var(--amber);font-weight:700;}
+.q-item:last-child{margin-bottom:0;}
+
+.next-steps-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:16px;border-left:3px solid var(--accent);}
+.next-steps-box .sh2{font-size:11px;font-family:var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px;}
+.next-steps-text{font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;}
+
+.assessment-box{font-size:13px;color:var(--text);line-height:1.7;margin-bottom:20px;padding:14px 16px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--border);}
+
+/* chat */
+.chat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-top:8px;display:none;overflow:hidden;}
+.chat-card.visible{display:block;animation:fadeIn 0.3s ease;}
+.chat-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);}
+.chat-header-left{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;}
+.lock-badge{font-size:10px;font-family:var(--mono);padding:2px 7px;border-radius:3px;background:var(--accent-dim);color:var(--accent);border:1px solid rgba(34,211,197,0.25);}
+.chat-messages{max-height:320px;min-height:60px;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.chat-empty{font-size:12px;color:var(--text3);}
+.chat-suggestions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.chat-suggest-btn{font-size:11px;font-family:var(--mono);background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:14px;padding:4px 10px;cursor:pointer;transition:all 0.15s;}
+.chat-suggest-btn:hover{border-color:var(--accent);color:var(--accent);}
+.chat-msg{display:flex;flex-direction:column;gap:3px;max-width:88%;}
+.chat-msg.user{align-self:flex-end;align-items:flex-end;}
+.chat-msg.assistant{align-self:flex-start;align-items:flex-start;}
+.chat-bubble{font-size:12.5px;line-height:1.6;padding:8px 12px;border-radius:10px;white-space:pre-wrap;}
+.chat-msg.user .chat-bubble{background:var(--accent-dim);color:var(--text);border:1px solid rgba(34,211,197,0.25);}
+.chat-msg.assistant .chat-bubble{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.chat-msg.assistant.thinking .chat-bubble{color:var(--text2);font-style:italic;}
+.chat-msg.error .chat-bubble{background:var(--red-dim);color:var(--red);border:1px solid rgba(248,113,113,0.25);}
+.chat-input-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);}
+.chat-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12.5px;font-family:var(--sans);color:var(--text);resize:none;min-height:20px;max-height:80px;}
+.chat-input:focus{outline:none;border-color:var(--accent);}
+.chat-input::placeholder{color:var(--text3);}
+.chat-send{background:var(--accent);color:#000;border:none;border-radius:6px;padding:0 14px;font-size:12px;font-weight:500;cursor:pointer;transition:all 0.15s;}
+.chat-send:hover:not(:disabled){background:var(--accent2);}
+.chat-send:disabled{opacity:0.35;cursor:not-allowed;}
+
+/* pipeline (right col) */
+.pipeline{display:flex;flex-direction:column;}
+.pipe-step{display:flex;gap:12px;position:relative;}
+.pipe-step:not(:last-child)::after{content:'';position:absolute;left:15px;top:32px;bottom:-14px;width:1px;background:var(--border);z-index:0;}
+.pipe-step+.pipe-step{margin-top:14px;}
+.pipe-node{width:32px;height:32px;border-radius:50%;flex-shrink:0;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;position:relative;z-index:1;transition:all 0.35s ease;font-size:13px;}
+.pipe-node.active{background:var(--accent-dim);border-color:var(--accent);animation:nodeGlow 1s ease-in-out infinite alternate;}
+.pipe-node.done{background:var(--accent-dim);border-color:var(--accent2);}
+.pipe-node.error{background:var(--red-dim);border-color:var(--red);}
+@keyframes nodeGlow{from{box-shadow:0 0 0 0 transparent;}to{box-shadow:0 0 10px 2px rgba(34,211,197,0.25);}}
+.pipe-content{flex:1;padding-bottom:8px;}
+.pipe-title{font-size:13px;font-weight:500;margin-bottom:2px;display:flex;align-items:center;gap:6px;}
+.pipe-sub{font-size:11px;color:var(--text2);line-height:1.5;}
+.pipe-badge{font-size:9px;font-family:var(--mono);padding:2px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:0.05em;background:var(--accent-dim);color:var(--accent);}
+.pipe-log{margin-top:8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:var(--mono);font-size:10px;color:var(--text2);max-height:90px;overflow-y:auto;line-height:1.6;white-space:pre-wrap;display:none;}
+.pipe-log.visible{display:block;animation:fadeIn 0.2s ease;}
+.log-ok{color:var(--accent);}
+.log-err{color:var(--red);}
+.log-dim{color:var(--text3);}
+
+.config-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.config-title{padding:10px 14px;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;}
+.config-fields{padding:14px;display:flex;flex-direction:column;gap:10px;}
+.cfg-field{display:flex;flex-direction:column;gap:4px;}
+.cfg-label{font-size:10px;font-family:var(--mono);color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
+.cfg-input{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:7px 10px;font-size:12px;font-family:var(--mono);color:var(--text);transition:border-color 0.15s;}
+.cfg-input:focus{outline:none;border-color:var(--accent);}
+.status-row{display:flex;align-items:center;gap:6px;padding:6px 0;font-size:12px;}
+.sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.sdot-green{background:var(--accent);box-shadow:0 0 4px var(--accent);}
+.sdot-gray{background:var(--text3);}
+.sdot-red{background:var(--red);}
+.check-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:7px 12px;font-size:11px;font-family:var(--mono);color:var(--text2);cursor:pointer;transition:all 0.15s;width:100%;}
+.check-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* prove-it modal */
+.modal-bg{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.show{display:flex;}
+.modal-inner{background:var(--bg2);border:1px solid var(--accent);border-radius:14px;max-width:460px;width:100%;padding:0;overflow:hidden;box-shadow:0 0 60px rgba(34,211,197,0.15);}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:500;display:flex;align-items:center;gap:8px;}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:20px 22px;}
+.proof-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border);}
+.proof-row:last-child{border-bottom:none;}
+.proof-check{color:var(--accent);font-family:var(--mono);margin-right:8px;}
+.proof-label{flex:1;}
+.proof-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;background:var(--accent-dim);color:var(--accent);}
+.proof-divider{height:1px;background:var(--border2);margin:12px 0;}
+.proof-stat{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;color:var(--text2);}
+.proof-stat b{color:var(--text);font-family:var(--mono);}
+.proof-stat.zero b{color:var(--accent);}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.spin{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    </div>
+    <span class="nav-title">Finance <span>Copilot</span></span>
+  </div>
+  <div class="nav-pills">
+    <span class="pill local"><span class="pill-dot"></span>LOCAL AI — data stays on this device</span>
+    <button class="proveit-btn" onclick="openProveIt()">Prove it →</button>
+  </div>
+</nav>
+
+<div class="app">
+<div class="left">
+
+  <div class="sh">Customer documents</div>
+
+  <div class="demo-row">
+    <button class="demo-btn" onclick="loadDemo()">&#9654; Load demo customer</button>
+    <span style="font-size:11px;color:var(--text3);">or drop files below</span>
+  </div>
+
+  <div class="upload-zone" id="uploadZone">
+    <input type="file" id="fileInput" accept=".csv,.pdf,.jpg,.jpeg,.png,.txt" multiple onchange="handleFiles(this.files)">
+    <div class="upload-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <div class="upload-title">Drop customer documents here</div>
+    <div class="upload-sub">Bank statements, payslips, loan applications, ID scans</div>
+    <div class="upload-formats"><span class="fmt-tag">.csv</span><span class="fmt-tag">.pdf</span><span class="fmt-tag">.jpg / .png</span><span class="fmt-tag">.txt</span></div>
+  </div>
+
+  <div class="doc-list" id="docList"></div>
+
+  <div class="privacy-note">
+    <span style="font-size:16px;flex-shrink:0;">&#x1F512;</span>
+    <span id="privacyNoteText">Every document is parsed and analyzed <strong>entirely on this device</strong> by the built-in on-device AI model. Nothing is uploaded, nothing leaves this machine.</span>
+  </div>
+
+  <button class="run-btn" id="runBtn" onclick="runAnalysis()" disabled>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21 5,3"/></svg>
+    Analyze customer file
+  </button>
+
+  <div class="err-box" id="errBox"></div>
+
+  <div class="results" id="results">
+
+    <div class="customer-strip" id="customerStrip" style="display:none;">
+      <div class="customer-avatar" id="custInitials">?</div>
+      <div>
+        <div class="customer-name" id="custName">—</div>
+        <div class="customer-sub" id="custSub">—</div>
+      </div>
+    </div>
+
+    <div class="sh" style="margin-top:8px;">Customer financial profile — computed locally</div>
+    <div class="profile-grid" id="profileGrid"></div>
+
+    <div class="sh">Detected items</div>
+    <div class="detected-grid" id="detectedGrid"></div>
+
+    <div class="questions-box" id="questionsBox" style="display:none;">
+      <div class="sh2">Questions for the analyst</div>
+      <div id="questionsList"></div>
+    </div>
+
+    <div class="next-steps-box" id="nextStepsBox" style="display:none;">
+      <div class="sh2">Suggested next steps</div>
+      <div class="next-steps-text" id="nextStepsText"></div>
+    </div>
+
+    <div class="sh">Overall assessment — AI reasoning, on-device</div>
+    <div class="assessment-box" id="assessmentBox"></div>
+
+    <div class="chat-card" id="chatCard">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Ask your financial data <span class="lock-badge">stays on device</span>
+        </div>
+        <button class="doc-remove" onclick="clearChat()" title="Clear chat">&#x2715;</button>
+      </div>
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-empty">
+          Ask a question grounded in this customer's data.
+          <div class="chat-suggestions">
+            <button class="chat-suggest-btn" onclick="askSuggested('Find transactions above €5,000.')">Find transactions above €5,000</button>
+            <button class="chat-suggest-btn" onclick="askSuggested('What are the recurring financial commitments?')">Recurring commitments</button>
+            <button class="chat-suggest-btn" onclick="askSuggested('Compare declared income with actual deposits.')">Declared vs actual income</button>
+            <button class="chat-suggest-btn" onclick="askSuggested('Generate a one-page analyst briefing.')">One-page briefing</button>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <textarea class="chat-input" id="chatInput" rows="1" placeholder="Ask about this customer's finances..." onkeydown="handleChatKey(event)"></textarea>
+        <button class="chat-send" id="chatSendBtn" onclick="sendChatMessage()">Ask</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="right">
+
+  <div>
+    <div class="sh">Local processing pipeline</div>
+    <div class="pipeline">
+
+      <div class="pipe-step">
+        <div class="pipe-node" id="pn0">&#x1F4C4;</div>
+        <div class="pipe-content">
+          <div class="pipe-title">Document extraction <span class="pipe-badge">LOCAL</span></div>
+          <div class="pipe-sub">CSV parsed, PDFs read (PdfPig), images OCR'd (Windows AI TextRecognizer) — all on this device.</div>
+          <div class="pipe-log" id="pl0"></div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-node" id="pn1">&#x1F522;</div>
+        <div class="pipe-content">
+          <div class="pipe-title">Financial calculation <span class="pipe-badge">LOCAL · deterministic</span></div>
+          <div class="pipe-sub">Income, expenses, DTI, anomalies computed by code — not the AI — so every number is exact.</div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-node" id="pn2">&#x1F9E0;</div>
+        <div class="pipe-content">
+          <div class="pipe-title">AI reasoning <span class="pipe-badge">Phi Silica · NPU</span></div>
+          <div class="pipe-sub">On-device model writes the narrative, analyst questions, and next steps from the computed facts.</div>
+          <div class="pipe-log" id="pl2"></div>
+        </div>
+      </div>
+
+      <div class="pipe-step">
+        <div class="pipe-node" id="pn3">&#x2713;</div>
+        <div class="pipe-content">
+          <div class="pipe-title">Result displayed</div>
+          <div class="pipe-sub">Profile shown. Zero documents left this device.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div>
+    <div class="sh">On-device AI status</div>
+    <div class="config-box">
+      <div class="config-title">Connection settings</div>
+      <div class="config-fields">
+        <div id="nativeAiInfo" style="display:none;font-size:11px;color:var(--text2);line-height:1.6;
+          background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;">
+          🖥️ Runs on the built-in on-device model (Phi Silica / Windows AI APIs) and on-device OCR.
+          No server, no manual model load, no cloud stage at all in this app.
+        </div>
+        <div id="foundryLocalCfg">
+          <div class="cfg-field">
+            <div class="cfg-label">Foundry Local URL</div>
+            <input class="cfg-input" id="cfgLocal" value="http://127.0.0.1:60084" placeholder="http://127.0.0.1:60084">
+          </div>
+          <div class="cfg-field">
+            <div class="cfg-label">Local model ID</div>
+            <input class="cfg-input" id="cfgModel" value="phi-4-mini-instruct-openvino-npu:2">
+          </div>
+        </div>
+        <div class="status-row">
+          <div class="sdot sdot-gray" id="statusDot"></div>
+          <span id="statusText" style="font-size:12px;color:var(--text2);">Checking...</span>
+        </div>
+        <button class="check-btn" onclick="checkStatus()">&#x26A1; Check on-device model</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ══ PROVE IT MODAL ══ -->
+<div class="modal-bg" id="proveModal" onclick="closeProveIt(event)">
+  <div class="modal-inner" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title"><span class="pill-dot" style="display:inline-block;"></span>&nbsp;AI Processing — Proof</div>
+      <button class="modal-close" onclick="document.getElementById('proveModal').classList.remove('show')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">Document extraction</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">Customer information</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">Financial analysis</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">Risk indicators</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">AI reasoning</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-divider"></div>
+      <div class="proof-stat"><span>Internet connection</span><b id="proveNet">NOT REQUIRED</b></div>
+      <div class="proof-stat zero"><span>External AI API calls</span><b id="proveApiCalls">0</b></div>
+      <div class="proof-stat zero"><span>Documents uploaded to cloud</span><b id="proveUploaded">0</b></div>
+      <div class="proof-stat"><span>Documents processed locally</span><b id="proveProcessed">0</b></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══ NATIVE AI BRIDGE ═══
+// Inside the Finance Copilot desktop shell, window.chrome.webview talks straight to
+// Microsoft.Windows.AI.Text.LanguageModel (Phi Silica), Microsoft.Windows.AI.Imaging.TextRecognizer
+// (on-device OCR) and PdfPig (local PDF text extraction) via C#. There is no cloud stage in this
+// app at all — everything below either runs on-device or (outside the native shell, e.g. testing
+// in a plain browser) falls back to a local Foundry Local server for the language-model calls only.
+const NativeAI = (() => {
+  const native = !!(window.chrome && window.chrome.webview);
+  const pending = new Map();
+  let counter = 0;
+  if (native) {
+    window.chrome.webview.addEventListener('message', (e) => {
+      const msg = e.data;
+      if (!msg || !msg.id || !pending.has(msg.id)) return;
+      const { resolve, reject } = pending.get(msg.id);
+      pending.delete(msg.id);
+      if (msg.ok) resolve(msg); else reject(new Error(msg.error || 'Native AI error'));
+    });
+  }
+  function call(type, extra) {
+    if (!native) return Promise.reject(new Error('Native AI bridge not available — install the desktop app for PDF/OCR/on-device AI.'));
+    const id = 't' + (++counter) + '_' + Date.now();
+    return new Promise((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+      window.chrome.webview.postMessage(Object.assign({ id, type }, extra));
+    });
+  }
+  return {
+    isNative: native,
+    ensureReady: () => call('ensureReady'),
+    generate: (prompt) => call('generate', { prompt }),
+    pdfText: (base64) => call('pdfText', { base64 }),
+    ocr: (base64) => call('ocr', { base64 }),
+  };
+})();
+
+if (NativeAI.isNative) {
+  document.getElementById('nativeAiInfo').style.display = 'block';
+  document.getElementById('foundryLocalCfg').style.display = 'none';
+}
+
+const $ = id => document.getElementById(id);
+
+// ═══ STATE ═══
+let txns = [];              // {date, desc, amount}  amount>0 credit, <0 debit
+let docs = {};               // {payslip, creditReport, loanApp, idDoc}
+let uploadedDocsCount = 0;   // for the Prove-it panel
+let analysis = null;
+let chatHistory = [];
+let chatBusy = false;
+
+// ═══════════════════════════════════════════════════
+//  DEMO DATA — "Elena Marchetti"
+// ═══════════════════════════════════════════════════
+const DEMO_CSV = `date,description,amount
+2026-04-01,RENT PAYMENT - LANDLORD SRL,-1150.00
+2026-04-02,FITZONE GYM MEMBERSHIP,-39.00
+2026-04-03,NETFLIX.COM,-15.99
+2026-04-05,LOAN PAYMENT - AUTO FINANCE CO,-620.00
+2026-04-06,SPOTIFY AB,-10.99
+2026-04-07,LOAN PAYMENT - PERSONAL LOAN SVC,-420.00
+2026-04-08,GROCERY MART #14,-92.40
+2026-04-10,CREDIT CARD PAYMENT - VISA ****4471,-410.00
+2026-04-11,FUEL STATION - SHELL,-68.20
+2026-04-14,ELECTRICITY & WATER UTILITY CO,-198.50
+2026-04-15,CLOUDDRIVE STORAGE PLAN,-9.99
+2026-04-16,GROCERY MART #14,-118.75
+2026-04-18,RESTAURANT - TRATTORIA BELLA,-64.00
+2026-04-20,FUEL STATION - SHELL,-71.10
+2026-04-22,GROCERY MART #14,-103.20
+2026-04-25,CAFE CENTRALE,-38.50
+2026-04-28,SALARY - ACME CORP PAYROLL,4850.00
+2026-05-01,RENT PAYMENT - LANDLORD SRL,-1150.00
+2026-05-02,FITZONE GYM MEMBERSHIP,-39.00
+2026-05-03,NETFLIX.COM,-15.99
+2026-05-05,LOAN PAYMENT - AUTO FINANCE CO,-620.00
+2026-05-06,SPOTIFY AB,-10.99
+2026-05-07,LOAN PAYMENT - PERSONAL LOAN SVC,-420.00
+2026-05-09,GROCERY MART #14,-101.10
+2026-05-10,CREDIT CARD PAYMENT - VISA ****4471,-410.00
+2026-05-12,FUEL STATION - SHELL,-73.40
+2026-05-14,ELECTRICITY & WATER UTILITY CO,-205.20
+2026-05-15,CLOUDDRIVE STORAGE PLAN,-9.99
+2026-05-17,TRANSFER RECEIVED - REF 40219X,3200.00
+2026-05-18,GROCERY MART #14,-96.85
+2026-05-19,RESTAURANT - TRATTORIA BELLA,-58.00
+2026-05-23,FUEL STATION - SHELL,-66.90
+2026-05-24,GROCERY MART #14,-110.30
+2026-05-27,CAFE CENTRALE,-42.00
+2026-05-28,SALARY - ACME CORP PAYROLL,4850.00
+2026-06-01,RENT PAYMENT - LANDLORD SRL,-1150.00
+2026-06-02,FITZONE GYM MEMBERSHIP,-39.00
+2026-06-03,NETFLIX.COM,-15.99
+2026-06-05,LOAN PAYMENT - AUTO FINANCE CO,-620.00
+2026-06-06,SPOTIFY AB,-10.99
+2026-06-07,LOAN PAYMENT - PERSONAL LOAN SVC,-420.00
+2026-06-09,GROCERY MART #14,-88.60
+2026-06-10,CREDIT CARD PAYMENT - VISA ****4471,-410.00
+2026-06-12,FUEL STATION - SHELL,-70.15
+2026-06-14,ELECTRICITY & WATER UTILITY CO,-189.90
+2026-06-15,CLOUDDRIVE STORAGE PLAN,-9.99
+2026-06-17,GROCERY MART #14,-124.05
+2026-06-19,RESTAURANT - TRATTORIA BELLA,-71.50
+2026-06-22,FUEL STATION - SHELL,-64.30
+2026-06-24,GROCERY MART #14,-99.75
+2026-06-27,CAFE CENTRALE,-35.20
+2026-06-28,SALARY - ACME CORP PAYROLL,4850.00
+2026-07-01,RENT PAYMENT - LANDLORD SRL,-1150.00
+2026-07-02,FITZONE GYM MEMBERSHIP,-39.00
+2026-07-03,NETFLIX.COM,-15.99
+2026-07-05,LOAN PAYMENT - AUTO FINANCE CO,-620.00
+2026-07-06,SPOTIFY AB,-10.99
+2026-07-07,LOAN PAYMENT - PERSONAL LOAN SVC,-420.00
+2026-07-09,GROCERY MART #14,-95.40
+2026-07-10,CREDIT CARD PAYMENT - VISA ****4471,-410.00
+2026-07-11,INTERNATIONAL WIRE TRANSFER - REF 88231Z,-7800.00
+2026-07-13,FUEL STATION - SHELL,-69.75
+2026-07-14,ELECTRICITY & WATER UTILITY CO,-211.30
+2026-07-15,CLOUDDRIVE STORAGE PLAN,-9.99
+2026-07-18,GROCERY MART #14,-107.20
+2026-07-19,RESTAURANT - TRATTORIA BELLA,-61.00
+2026-07-23,FUEL STATION - SHELL,-72.60
+2026-07-25,GROCERY MART #14,-91.85
+2026-07-27,CAFE CENTRALE,-40.10
+2026-07-28,SALARY - ACME CORP PAYROLL,4850.00
+2026-08-01,RENT PAYMENT - LANDLORD SRL,-1150.00
+2026-08-02,FITZONE GYM MEMBERSHIP,-39.00
+2026-08-03,NETFLIX.COM,-15.99
+2026-08-05,LOAN PAYMENT - AUTO FINANCE CO,-620.00
+2026-08-06,SPOTIFY AB,-10.99
+2026-08-07,LOAN PAYMENT - PERSONAL LOAN SVC,-420.00
+2026-08-09,GROCERY MART #14,-112.90
+2026-08-10,CREDIT CARD PAYMENT - VISA ****4471,-410.00
+2026-08-12,FUEL STATION - SHELL,-75.10
+2026-08-14,ELECTRICITY & WATER UTILITY CO,-220.40
+2026-08-15,CLOUDDRIVE STORAGE PLAN,-9.99
+2026-08-17,GROCERY MART #14,-98.55
+2026-08-19,RESTAURANT - TRATTORIA BELLA,-66.00
+2026-08-22,FUEL STATION - SHELL,-68.90
+2026-08-24,GROCERY MART #14,-105.30
+2026-08-27,CAFE CENTRALE,-37.80
+2026-08-28,SALARY - ACME CORP PAYROLL,4850.00
+2026-09-01,RENT PAYMENT - LANDLORD SRL,-1150.00
+2026-09-02,FITZONE GYM MEMBERSHIP,-39.00
+2026-09-03,NETFLIX.COM,-15.99
+2026-09-05,LOAN PAYMENT - AUTO FINANCE CO,-620.00
+2026-09-06,SPOTIFY AB,-10.99
+2026-09-07,LOAN PAYMENT - PERSONAL LOAN SVC,-420.00
+2026-09-09,GROCERY MART #14,-90.20
+2026-09-10,CREDIT CARD PAYMENT - VISA ****4471,-410.00
+2026-09-12,FUEL STATION - SHELL,-71.85
+2026-09-14,ELECTRICITY & WATER UTILITY CO,-195.60
+2026-09-15,CLOUDDRIVE STORAGE PLAN,-9.99
+2026-09-17,GROCERY MART #14,-115.40
+2026-09-18,RESTAURANT - TRATTORIA BELLA,-59.50
+2026-09-19,SALARY - ACME CORP PAYROLL,4850.00`;
+
+const DEMO_PAYSLIP = `ACME CORP — PAYSLIP
+Employee: Elena Marchetti
+Pay Period: August 2026
+Gross Monthly Salary: EUR 6,400.00
+Deductions (tax, social security): EUR 1,300.00
+Net Monthly Salary: EUR 5,100.00
+Employer: Acme Corp S.R.L.`;
+
+const DEMO_CREDIT_REPORT = `CREDIT BUREAU REPORT - SUMMARY
+Applicant: Elena Marchetti
+Auto Loan (Auto Finance Co) - Outstanding Balance: EUR 9,200.00 - Monthly Payment: EUR 620.00
+Personal Loan (Personal Loan Svc) - Outstanding Balance: EUR 5,400.00 - Monthly Payment: EUR 420.00
+Credit Card (Visa ****4471) - Outstanding Balance: EUR 3,800.00 - Monthly Payment: EUR 410.00 (minimum)
+Total Outstanding Debt: EUR 18,400.00
+Credit Score: 704 (Good)`;
+
+const DEMO_LOAN_APP = `LOAN APPLICATION FORM
+Applicant: Elena Marchetti
+Requested Amount: EUR 15,000.00
+Purpose: Home renovation
+Requested Term: 60 months
+Declared Monthly Income: EUR 5,100.00
+Declared Existing Debt: EUR 18,400.00`;
+
+const DEMO_ID = `NATIONAL IDENTITY CARD
+Surname: MARCHETTI
+Given Name: ELENA
+Date of Birth: 14/03/1990
+ID Number: IT-88213456X
+Nationality: ITALIAN`;
+
+function loadDemo() {
+  txns = parseCSV(DEMO_CSV);
+  docs = { payslip: DEMO_PAYSLIP, creditReport: DEMO_CREDIT_REPORT, loanApp: DEMO_LOAN_APP, idDoc: DEMO_ID };
+  uploadedDocsCount = 5; // csv + payslip + credit report + loan app + id
+  renderDocList([
+    { name: 'statement_apr_sep_2026.csv', kind: 'CSV', status: 'ok' },
+    { name: 'payslip_august_2026.pdf', kind: 'PDF', status: 'ok' },
+    { name: 'credit_bureau_report.pdf', kind: 'PDF', status: 'ok' },
+    { name: 'loan_application.pdf', kind: 'PDF', status: 'ok' },
+    { name: 'id_card_scan.jpg', kind: 'IMG', status: 'ok' },
+  ]);
+  $('runBtn').disabled = false;
+  toast('Demo customer loaded — 5 documents ✓', 'ok');
+}
+
+// ═══════════════════════════════════════════════════
+//  FILE HANDLING
+// ═══════════════════════════════════════════════════
+let _docRows = [];
+
+function handleFiles(fileList) {
+  const files = Array.from(fileList);
+  if (!files.length) return;
+  files.forEach(processFile);
+}
+
+async function processFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const row = { name: file.name, kind: ext.toUpperCase(), status: 'busy' };
+  _docRows.push(row);
+  renderDocList(_docRows);
+
+  try {
+    if (ext === 'csv') {
+      const text = await file.text();
+      const parsed = parseCSV(text);
+      txns = txns.concat(parsed);
+      row.status = 'ok';
+    } else if (ext === 'pdf') {
+      if (!NativeAI.isNative) throw new Error('PDF extraction needs the installed desktop app');
+      const b64 = await fileToBase64(file);
+      const r = await NativeAI.pdfText(b64);
+      classifyAndStore(r.text || '');
+      row.status = 'ok';
+    } else if (ext === 'jpg' || ext === 'jpeg' || ext === 'png') {
+      if (!NativeAI.isNative) throw new Error('OCR needs the installed desktop app');
+      const b64 = await fileToBase64(file);
+      const r = await NativeAI.ocr(b64);
+      classifyAndStore(r.text || '');
+      row.status = 'ok';
+    } else if (ext === 'txt' || ext === 'json') {
+      const text = await file.text();
+      classifyAndStore(text);
+      row.status = 'ok';
+    } else {
+      throw new Error('Unsupported file type: .' + ext);
+    }
+    uploadedDocsCount++;
+    $('runBtn').disabled = (txns.length === 0 && Object.keys(docs).length === 0);
+  } catch (e) {
+    row.status = 'err';
+    row.err = e.message;
+  }
+  renderDocList(_docRows);
+}
+
+function classifyAndStore(text) {
+  const t = text.toUpperCase();
+  if (t.includes('PAYSLIP') || t.includes('NET MONTHLY SALARY') || t.includes('GROSS MONTHLY SALARY')) {
+    docs.payslip = text;
+  } else if (t.includes('CREDIT BUREAU') || t.includes('OUTSTANDING BALANCE') || t.includes('OUTSTANDING DEBT')) {
+    docs.creditReport = text;
+  } else if (t.includes('LOAN APPLICATION')) {
+    docs.loanApp = text;
+  } else if (t.includes('IDENTITY CARD') || t.includes('PASSPORT') || t.includes('ID NUMBER')) {
+    docs.idDoc = text;
+  } else {
+    docs['doc' + Object.keys(docs).length] = text;
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderDocList(rows) {
+  const list = $('docList');
+  const icons = { CSV: '📊', PDF: '📄', JPG: '📷', JPEG: '📷', PNG: '📷', TXT: '📄' };
+  list.innerHTML = rows.map((r, i) => `
+    <div class="doc-row">
+      <div class="doc-icon">${icons[r.kind] || '📄'}</div>
+      <div class="doc-name">${r.name}</div>
+      <span class="doc-status ${r.status === 'ok' ? 'ok' : r.status === 'busy' ? 'busy' : 'err'}">
+        ${r.status === 'ok' ? '✓ extracted' : r.status === 'busy' ? '⟳ extracting…' : '✗ ' + (r.err || 'error')}
+      </span>
+      <button class="doc-remove" onclick="removeDoc(${i})">&#x2715;</button>
+    </div>`).join('');
+}
+
+function removeDoc(i) {
+  _docRows.splice(i, 1);
+  renderDocList(_docRows);
+}
+
+// ═══════════════════════════════════════════════════
+//  CSV PARSING
+// ═══════════════════════════════════════════════════
+function parseCSV(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const out = [];
+  for (const line of lines) {
+    const parts = line.split(',');
+    if (parts.length < 3) continue;
+    const [date, desc, amountRaw] = parts;
+    const amount = parseFloat(amountRaw.replace(/[^\d.-]/g, ''));
+    if (!date.match(/^\d{4}-\d{2}-\d{2}/) || isNaN(amount)) continue; // skips header row
+    out.push({ date, desc: desc.trim(), amount });
+  }
+  return out;
+}
+
+// ═══════════════════════════════════════════════════
+//  DETERMINISTIC FINANCIAL ENGINE — every number here is
+//  computed by code, never by the AI model.
+// ═══════════════════════════════════════════════════
+function computeAnalysis() {
+  const byMonth = {};
+  txns.forEach(t => {
+    const m = t.date.slice(0, 7);
+    (byMonth[m] = byMonth[m] || []).push(t);
+  });
+  const months = Object.keys(byMonth).sort();
+
+  // income: recurring salary/payroll credits
+  const salaryTxns = txns.filter(t => t.amount > 0 && /SALARY|PAYROLL/i.test(t.desc));
+  const monthlyIncome = avg(salaryTxns.map(t => t.amount));
+
+  // recurring debt payments: same description appearing in >=2 months, tagged LOAN/CREDIT CARD
+  const debtTxns = txns.filter(t => t.amount < 0 && /LOAN PAYMENT|CREDIT CARD PAYMENT/i.test(t.desc));
+  const debtByDesc = groupBy(debtTxns, t => t.desc);
+  const recurringDebt = Object.entries(debtByDesc)
+    .filter(([, arr]) => arr.length >= 2)
+    .map(([desc, arr]) => ({ desc, monthly: avg(arr.map(t => -t.amount)), count: arr.length }));
+  const monthlyDebtService = recurringDebt.reduce((s, r) => s + r.monthly, 0);
+
+  // subscriptions: small (<50) recurring same-amount debits in >=3 months
+  const smallTxns = txns.filter(t => t.amount < 0 && Math.abs(t.amount) < 50);
+  const subByKey = groupBy(smallTxns, t => t.desc + '|' + Math.abs(t.amount).toFixed(2));
+  const subscriptions = Object.entries(subByKey)
+    .filter(([, arr]) => arr.length >= 3)
+    .map(([key, arr]) => ({ desc: arr[0].desc, amount: Math.abs(arr[0].amount), count: arr.length }));
+  const subDescs = new Set(subscriptions.map(s => s.desc));
+
+  // unusual transactions: single large txns not matching salary/debt/subscription patterns
+  const THRESH = 3000;
+  const unusual = txns.filter(t =>
+    Math.abs(t.amount) >= THRESH &&
+    !/SALARY|PAYROLL/i.test(t.desc) &&
+    !/LOAN PAYMENT|CREDIT CARD PAYMENT/i.test(t.desc)
+  );
+
+  // monthly expenses: total debits per month minus debt service minus flagged unusual debits
+  const unusualKeys = new Set(unusual.map(t => t.date + '|' + t.amount));
+  const monthlyExpensesList = months.map(m => {
+    const rows = byMonth[m];
+    const debitSum = rows.filter(t => t.amount < 0 && !unusualKeys.has(t.date + '|' + t.amount))
+      .reduce((s, t) => s - t.amount, 0);
+    return debitSum - monthlyDebtService;
+  });
+  const monthlyExpenses = avg(monthlyExpensesList);
+
+  const dti = monthlyIncome > 0 ? (monthlyDebtService / monthlyIncome) : null;
+  const avgSavings = monthlyIncome - monthlyExpenses - monthlyDebtService;
+
+  // existing declared debt from credit report doc
+  let declaredDebt = null;
+  if (docs.creditReport) {
+    const m = docs.creditReport.match(/Total\s+Outstanding\s+Debt[:\s]*(?:EUR|€)?\s*([\d,.]+)/i);
+    if (m) declaredDebt = parseFloat(m[1].replace(/,/g, ''));
+  }
+
+  // income inconsistency: payslip declared vs actual computed deposits
+  let incomeFlag = null;
+  if (docs.payslip) {
+    const m = docs.payslip.match(/Net\s+Monthly\s+Salary[:\s]*(?:EUR|€)?\s*([\d,.]+)/i);
+    if (m) {
+      const declared = parseFloat(m[1].replace(/,/g, ''));
+      if (Math.abs(declared - monthlyIncome) / declared > 0.02) {
+        incomeFlag = { declared, actual: monthlyIncome };
+      }
+    }
+  }
+
+  // customer identity from ID doc
+  let customer = null;
+  if (docs.idDoc) {
+    const sn = docs.idDoc.match(/Surname[:\s]*([A-Z]+)/i);
+    const gn = docs.idDoc.match(/Given\s*Name[:\s]*([A-Z]+)/i);
+    const dob = docs.idDoc.match(/Date\s+of\s+Birth[:\s]*([\d\/.-]+)/i);
+    if (sn || gn) {
+      const name = [gn && titleCase(gn[1]), sn && titleCase(sn[1])].filter(Boolean).join(' ');
+      customer = { name, dob: dob ? dob[1] : null };
+    }
+  }
+
+  // loan application cross-check
+  let loanAppFlag = null;
+  if (docs.loanApp) {
+    const m = docs.loanApp.match(/Declared\s+Monthly\s+Income[:\s]*(?:EUR|€)?\s*([\d,.]+)/i);
+    if (m) {
+      const declared = parseFloat(m[1].replace(/,/g, ''));
+      if (Math.abs(declared - monthlyIncome) / declared > 0.02) {
+        loanAppFlag = { declared, actual: monthlyIncome };
+      }
+    }
+  }
+
+  return {
+    months, monthlyIncome, monthlyExpenses, monthlyDebtService, dti, avgSavings,
+    recurringDebt, subscriptions, unusual, declaredDebt, incomeFlag, loanAppFlag, customer,
+    txnCount: txns.length,
+  };
+}
+
+// Generic category labels for anything sent to the AI model — raw merchant names and masked
+// card numbers (e.g. "VISA ****4471") stay in the UI only, never in a model prompt.
+function categorize(desc) {
+  const d = desc.toUpperCase();
+  if (/SALARY|PAYROLL/.test(d)) return 'Salary';
+  if (/RENT/.test(d)) return 'Rent';
+  if (/AUTO/.test(d) && /LOAN/.test(d)) return 'Auto loan payment';
+  if (/PERSONAL LOAN/.test(d)) return 'Personal loan payment';
+  if (/CREDIT CARD/.test(d)) return 'Credit card payment';
+  if (/LOAN/.test(d)) return 'Loan payment';
+  if (/NETFLIX|SPOTIFY|GYM|FIT|CLOUD|STORAGE|SUBSCRIB/.test(d)) return 'Subscription';
+  if (/GROCERY|MARKET|SUPERMARKET/.test(d)) return 'Groceries';
+  if (/FUEL|GAS STATION|PETROL/.test(d)) return 'Fuel';
+  if (/RESTAURANT|CAFE|DINING/.test(d)) return 'Dining';
+  if (/UTILITY|ELECTRIC|WATER/.test(d)) return 'Utilities';
+  if (/WIRE|TRANSFER/.test(d)) return 'Transfer';
+  return 'Other';
+}
+
+function avg(arr) { return arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0; }
+function groupBy(arr, keyFn) { const o = {}; arr.forEach(x => { const k = keyFn(x); (o[k] = o[k] || []).push(x); }); return o; }
+function titleCase(s) { return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase(); }
+function eur(n) { return '€' + n.toLocaleString('en-IE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }); }
+
+// ═══════════════════════════════════════════════════
+//  RUN ANALYSIS
+// ═══════════════════════════════════════════════════
+async function runAnalysis() {
+  if (!txns.length) { showErr('Load a CSV bank statement (or click "Load demo customer") first.'); return; }
+  $('errBox').classList.remove('visible');
+  $('results').classList.remove('visible');
+  const btn = $('runBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" class="spin" style="width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Analyzing...';
+
+  setNode(0, 'done'); setLog(0, 'Extraction complete for ' + uploadedDocsCount + ' document(s)', 'log-ok');
+
+  try {
+    setNode(1, 'active');
+    analysis = computeAnalysis();
+    setNode(1, 'done');
+
+    renderProfile(analysis);
+
+    setNode(2, 'active');
+    setLog(2, 'Building facts + asking on-device model for narrative...', 'log-dim');
+    let narrative;
+    try {
+      narrative = await callLocalNarrative(analysis);
+      setLog(2, 'Narrative received', 'log-ok');
+      setNode(2, 'done');
+    } catch (e) {
+      setNode(2, 'error'); setLog(2, 'Error: ' + e.message, 'log-err');
+      throw new Error('On-device AI reasoning failed: ' + e.message);
+    }
+
+    renderNarrative(narrative);
+    setNode(3, 'done');
+    $('results').classList.add('visible');
+    $('chatCard').classList.add('visible');
+    clearChat();
+    $('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    showErr(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5,3 19,12 5,21 5,3"/></svg> Analyze customer file';
+  }
+}
+
+function renderProfile(a) {
+  if (a.customer) {
+    $('customerStrip').style.display = 'flex';
+    const initials = a.customer.name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+    $('custInitials').textContent = initials || '?';
+    $('custName').textContent = a.customer.name;
+    $('custSub').textContent = (a.customer.dob ? 'DOB: ' + a.customer.dob : '') + (a.txnCount ? ' · ' + a.txnCount + ' transactions analyzed' : '');
+  } else {
+    $('customerStrip').style.display = 'none';
+  }
+
+  const dtiPct = a.dti != null ? Math.round(a.dti * 100) : null;
+  const dtiCls = dtiPct == null ? '' : dtiPct >= 36 ? 'risk' : dtiPct >= 28 ? 'warn' : '';
+
+  $('profileGrid').innerHTML = [
+    ['Monthly income', eur(a.monthlyIncome), '/mo', ''],
+    ['Avg monthly expenses', eur(a.monthlyExpenses), '/mo', ''],
+    ['Existing debt', a.declaredDebt != null ? eur(a.declaredDebt) : '—', a.declaredDebt != null ? 'total' : 'not provided', ''],
+    ['Debt-to-income ratio', dtiPct != null ? dtiPct + '%' : '—', 'estimated', dtiCls],
+    ['Monthly debt service', eur(a.monthlyDebtService), '/mo', ''],
+    ['Avg savings', eur(a.avgSavings), '/mo', a.avgSavings < 0 ? 'risk' : ''],
+  ].map(([label, value, unit, cls]) => `
+    <div class="profile-tile ${cls}">
+      <div class="pt-label">${label}</div>
+      <div class="pt-value">${value} <span class="pt-unit">${unit}</span></div>
+    </div>`).join('');
+
+  const cards = [];
+  cards.push(detectedCard('Recurring loan payments', a.recurringDebt.length,
+    a.recurringDebt.map(r => [shortDesc(r.desc), eur(r.monthly) + '/mo'])));
+  cards.push(detectedCard('Unusual transactions', a.unusual.length,
+    a.unusual.map(t => [shortDesc(t.desc) + ' (' + t.date + ')', (t.amount > 0 ? '+' : '') + eur(t.amount)]), true));
+  const incFlags = [];
+  if (a.incomeFlag) incFlags.push(['Payslip vs. deposits', eur(a.incomeFlag.declared) + ' vs ' + eur(a.incomeFlag.actual)]);
+  if (a.loanAppFlag) incFlags.push(['Loan app vs. deposits', eur(a.loanAppFlag.declared) + ' vs ' + eur(a.loanAppFlag.actual)]);
+  cards.push(detectedCard('Income inconsistencies', incFlags.length, incFlags, true));
+  cards.push(detectedCard('Recurring subscriptions', a.subscriptions.length,
+    a.subscriptions.map(s => [shortDesc(s.desc), eur(s.amount) + '/mo'])));
+  $('detectedGrid').innerHTML = cards.join('');
+}
+
+function shortDesc(d) { return d.length > 28 ? d.slice(0, 26) + '…' : d; }
+
+function detectedCard(title, count, items, flag) {
+  return `<div class="detected-card">
+    <div class="dc-title">${title} <span class="dc-count">${count}</span></div>
+    <div class="dc-list">
+      ${items.length ? items.map(([l, v]) => `<div class="dc-item ${flag ? 'flag' : ''}"><span>${l}</span><span>${v}</span></div>`).join('')
+        : '<div class="dc-empty">None detected</div>'}
+    </div>
+  </div>`;
+}
+
+function renderNarrative(n) {
+  $('assessmentBox').textContent = n.overall_assessment || '';
+  const qBox = $('questionsBox');
+  if (n.questions && n.questions.length) {
+    $('questionsList').innerHTML = n.questions.map(q => `<div class="q-item">${q}</div>`).join('');
+    qBox.style.display = 'block';
+  } else qBox.style.display = 'none';
+  const nsBox = $('nextStepsBox');
+  if (n.next_steps) {
+    $('nextStepsText').textContent = n.next_steps;
+    nsBox.style.display = 'block';
+  } else nsBox.style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════
+//  AI NARRATIVE — facts computed by code, AI only writes prose grounded in them
+// ═══════════════════════════════════════════════════
+function buildFacts(a) {
+  const lines = [];
+  lines.push('Monthly income (avg, from recurring salary deposits): ' + eur(a.monthlyIncome));
+  lines.push('Average monthly expenses (excl. debt service): ' + eur(a.monthlyExpenses));
+  lines.push('Monthly debt service: ' + eur(a.monthlyDebtService) + (a.dti != null ? ' (DTI ' + Math.round(a.dti * 100) + '%)' : ''));
+  lines.push('Average monthly savings: ' + eur(a.avgSavings));
+  if (a.declaredDebt != null) lines.push('Total declared outstanding debt: ' + eur(a.declaredDebt));
+  if (a.recurringDebt.length) lines.push('Recurring loan payments: ' + a.recurringDebt.map(r => categorize(r.desc) + ' ' + eur(r.monthly) + '/mo').join('; '));
+  if (a.subscriptions.length) lines.push('Recurring subscriptions: ' + a.subscriptions.length + ' active, totaling ' + eur(a.subscriptions.reduce((s, x) => s + x.amount, 0)) + '/mo');
+  if (a.unusual.length) lines.push('Large one-time transactions for review: ' + a.unusual.map(t => t.date + ' ' + categorize(t.desc) + ' ' + eur(t.amount)).join('; '));
+  if (a.incomeFlag) lines.push('Income discrepancy: payslip declares ' + eur(a.incomeFlag.declared) + '/mo but actual average bank deposits are ' + eur(a.incomeFlag.actual) + '/mo.');
+  if (a.loanAppFlag) lines.push('Loan application declares income ' + eur(a.loanAppFlag.declared) + '/mo, which does not match actual deposits of ' + eur(a.loanAppFlag.actual) + '/mo.');
+  return lines.join('\n');
+}
+
+async function callLocalNarrative(a) {
+  const facts = buildFacts(a);
+  const sys = `You are a financial analyst assistant running locally on the user's device, reviewing ONE customer's file for a bank employee.
+Use ONLY the facts given below — never invent numbers. Respond with ONLY one valid JSON object, no markdown:
+{"overall_assessment":"<3-4 sentence plain-English summary of this customer's financial position>","questions":["<question for the analyst to verify, grounded in a specific fact>", "..."],"next_steps":"<1-3 sentence recommended next action>"}
+Write 2-4 questions, focusing on any flagged discrepancies or unusual transactions first.`;
+  const prompt = sys + '\n\nFACTS:\n' + facts + '\n\nJSON:';
+
+  let raw;
+  if (NativeAI.isNative) {
+    const gen = await NativeAI.generate(prompt);
+    raw = gen.text || '';
+  } else {
+    const base = $('cfgLocal').value.trim().replace(/\/$/, '');
+    const model = $('cfgModel').value.trim();
+    const resp = await fetch(base + '/v1/chat/completions', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: 'FACTS:\n' + facts }], max_tokens: 700, temperature: 0.2 })
+    });
+    if (!resp.ok) throw new Error(resp.status + ' ' + await resp.text());
+    const data = await resp.json();
+    raw = data.choices[0].message.content;
+    if (Array.isArray(raw)) raw = raw.map(p => p.text || '').join('');
+  }
+  raw = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    return { overall_assessment: raw, questions: [], next_steps: '' };
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  CHAT — "Ask your financial data"
+// ═══════════════════════════════════════════════════
+function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMessage(); } }
+function askSuggested(q) { $('chatInput').value = q; sendChatMessage(); }
+
+function clearChat() {
+  chatHistory = [];
+  $('chatMessages').innerHTML = `<div class="chat-empty">
+    Ask a question grounded in this customer's data.
+    <div class="chat-suggestions">
+      <button class="chat-suggest-btn" onclick="askSuggested('Find transactions above €5,000.')">Find transactions above €5,000</button>
+      <button class="chat-suggest-btn" onclick="askSuggested('What are the recurring financial commitments?')">Recurring commitments</button>
+      <button class="chat-suggest-btn" onclick="askSuggested('Compare declared income with actual deposits.')">Declared vs actual income</button>
+      <button class="chat-suggest-btn" onclick="askSuggested('Generate a one-page analyst briefing.')">One-page briefing</button>
+    </div>
+  </div>`;
+}
+
+function appendChatMessage(role, text, cls) {
+  const msgs = $('chatMessages');
+  const empty = msgs.querySelector('.chat-empty');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role + (cls ? ' ' + cls : '');
+  div.innerHTML = '<div class="chat-bubble"></div>';
+  div.querySelector('.chat-bubble').textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+async function sendChatMessage() {
+  if (chatBusy) return;
+  const input = $('chatInput');
+  const question = input.value.trim();
+  if (!question) return;
+  if (!analysis) { showErr('Run the analysis first.'); return; }
+
+  chatBusy = true;
+  $('chatSendBtn').disabled = true;
+  input.value = '';
+  appendChatMessage('user', question);
+  const thinking = appendChatMessage('assistant', 'Thinking…', 'thinking');
+
+  try {
+    const answer = await callLocalChat(question);
+    thinking.remove();
+    appendChatMessage('assistant', answer);
+    chatHistory.push({ q: question, a: answer });
+  } catch (e) {
+    thinking.remove();
+    appendChatMessage('assistant', 'Error: ' + e.message, 'error');
+  } finally {
+    chatBusy = false;
+    $('chatSendBtn').disabled = false;
+    input.focus();
+  }
+}
+
+async function callLocalChat(question) {
+  const facts = buildFacts(analysis);
+  // The on-device model has a small context window — never dump all transactions. Always
+  // include the flagged anomalies (small, always relevant), plus the most recent notable
+  // (non-trivial-amount) transactions, capped so the prompt stays well within context.
+  const unusualKeys = new Set(analysis.unusual.map(t => t.date + '|' + t.desc));
+  const notable = txns
+    .filter(t => Math.abs(t.amount) >= 100 && !unusualKeys.has(t.date + '|' + t.desc))
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 18);
+  const shownTxns = analysis.unusual.concat(notable).sort((a, b) => a.date.localeCompare(b.date));
+  // Always show amount as a positive magnitude + explicit deposit/withdrawal label — a small
+  // model asked to "find transactions above €X" tends to misread a negative sign as "smaller".
+  const txnList = shownTxns.map(t => t.date + ' | ' + categorize(t.desc) + ' | amount ' + eur(Math.abs(t.amount)) + ' | ' + (t.amount > 0 ? 'deposit' : 'withdrawal')).join('\n')
+    + '\n(' + shownTxns.length + ' of ' + txns.length + ' transactions shown — flagged items plus the largest recent ones; small recurring items are already summarized in COMPUTED FACTS)';
+  const historyText = chatHistory.slice(-2).map(t => 'Q: ' + t.q + '\nA: ' + t.a).join('\n\n');
+
+  const sys = `You are a financial analyst assistant answering questions about ONE customer's file, running locally on the user's device.
+Answer using ONLY the data given below — computed facts and the raw transaction list. Never invent numbers.
+Each transaction's "amount" is shown as a positive number with an explicit deposit/withdrawal label — when asked to compare amounts (e.g. "above €X"), compare the amount value directly regardless of deposit/withdrawal.
+Be concise (2-5 sentences, or a short list if asked to find/list transactions). Cite specific dates/amounts when relevant.`;
+
+  const prompt = sys
+    + '\n\nCOMPUTED FACTS:\n' + facts
+    + '\n\nRAW TRANSACTIONS:\n' + txnList
+    + (historyText ? '\n\nPrevious Q&A in this conversation:\n' + historyText : '')
+    + '\n\nQuestion: ' + question + '\nAnswer:';
+
+  if (NativeAI.isNative) {
+    const gen = await NativeAI.generate(prompt);
+    return (gen.text || '').trim();
+  }
+
+  const base = $('cfgLocal').value.trim().replace(/\/$/, '');
+  const model = $('cfgModel').value.trim();
+  const resp = await fetch(base + '/v1/chat/completions', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, messages: [{ role: 'system', content: sys }, { role: 'user', content: 'COMPUTED FACTS:\n' + facts + '\n\nRAW TRANSACTIONS:\n' + txnList + '\n\nQuestion: ' + question }], max_tokens: 500, temperature: 0.2 })
+  });
+  if (!resp.ok) throw new Error(resp.status + ' ' + await resp.text());
+  const data = await resp.json();
+  let c = data.choices[0].message.content;
+  if (Array.isArray(c)) c = c.map(x => x.text || '').join('');
+  return (c || '').trim();
+}
+
+// ═══════════════════════════════════════════════════
+//  PROVE IT
+// ═══════════════════════════════════════════════════
+function openProveIt() {
+  $('proveApiCalls').textContent = '0';
+  $('proveUploaded').textContent = '0';
+  $('proveProcessed').textContent = String(uploadedDocsCount);
+  $('proveModal').classList.add('show');
+}
+function closeProveIt(e) { if (e.target === $('proveModal')) $('proveModal').classList.remove('show'); }
+
+// ═══════════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════════
+function setNode(id, state) {
+  const el = $('pn' + id);
+  el.className = 'pipe-node';
+  if (state === 'active') el.classList.add('active');
+  else if (state === 'done') el.classList.add('done');
+  else if (state === 'error') el.classList.add('error');
+}
+function setLog(id, text, cls) {
+  const el = $('pl' + id);
+  if (!el) return;
+  el.innerHTML = `<span class="${cls || ''}">${text}</span>`;
+  el.classList.add('visible');
+}
+function showErr(msg) { const el = $('errBox'); el.textContent = msg; el.classList.add('visible'); }
+function toast(msg, type) {
+  const t = $('toast');
+  if (!t.id) return;
+}
+
+async function checkStatus() {
+  const dot = $('statusDot');
+  const txt = $('statusText');
+  dot.className = 'sdot sdot-gray'; txt.textContent = 'Checking...';
+
+  if (NativeAI.isNative) {
+    try {
+      const ready = await NativeAI.ensureReady();
+      if (ready.ok) { dot.className = 'sdot sdot-green'; txt.textContent = 'On-device model: ready'; }
+      else { dot.className = 'sdot sdot-red'; txt.textContent = 'On-device model: ' + (ready.error || ready.state); }
+    } catch (e) { dot.className = 'sdot sdot-red'; txt.textContent = 'On-device model: ' + e.message; }
+    return;
+  }
+
+  const base = $('cfgLocal').value.trim().replace(/\/$/, '');
+  try {
+    const r = await fetch(base + '/openai/status', { signal: AbortSignal.timeout(3000) });
+    if (r.ok) { dot.className = 'sdot sdot-green'; txt.textContent = 'Local service: running'; }
+    else { dot.className = 'sdot sdot-red'; txt.textContent = 'Local service: error ' + r.status; }
+  } catch (e) { dot.className = 'sdot sdot-red'; txt.textContent = 'Local service: not reachable'; }
+}
+
+const zone = $('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag'); if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
+
+checkStatus();
+</script>
+</body>
+</html>

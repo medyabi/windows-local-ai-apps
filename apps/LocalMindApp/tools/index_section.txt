@@ -1,0 +1,203 @@
+    // ── indexing ───────────────────────────────────────────────────────────
+    private static string DocKey(string path) =>
+        Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(path.ToLowerInvariant())))[..10].ToLowerInvariant();
+
+    private static readonly HashSet<string> SkipDirs = new(StringComparer.OrdinalIgnoreCase)
+        { "node_modules", ".git", "__pycache__", ".venv", "venv", ".vs", "$RECYCLE.BIN", "System Volume Information" };
+    private const int MaxFiles = 5000;
+    private bool _describePhotos;
+
+    private List<string> Enumerate(IEnumerable<string> roots, IndexSummary sum)
+    {
+        var files = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        bool capped = false;
+        void AddFile(string f)
+        {
+            var name = Path.GetFileName(f);
+            if (name.StartsWith("~$")) return;
+            var kind = Extractor.Classify(f);
+            if (kind == FileKind.Skip) { sum.Skipped++; return; }
+            if (kind == FileKind.Unknown && !Extractor.LooksLikeText(f)) { sum.Skipped++; return; }
+            if (!seen.Add(f)) return;
+            if (files.Count >= MaxFiles) { capped = true; return; }
+            files.Add(f);
+        }
+        void Walk(string dir, int depth)
+        {
+            if (depth > 12) return;
+            try
+            {
+                foreach (var f in Directory.EnumerateFiles(dir)) AddFile(f);
+                foreach (var d in Directory.EnumerateDirectories(dir))
+                    if (!SkipDirs.Contains(Path.GetFileName(d))) Walk(d, depth + 1);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException || ex is IOException) { sum.Messages.Add($"Could not read folder {dir}: {ex.Message}"); }
+        }
+        foreach (var raw in roots)
+        {
+            var r = raw.Trim().Trim('"');
+            if (r.Length == 0) continue;
+            try { r = Path.GetFullPath(r); } catch { sum.Messages.Add("Invalid path: " + raw); continue; }
+            if (Directory.Exists(r)) { Walk(r, 0); lock (_lock) _lastFolder = r; }
+            else if (File.Exists(r)) AddFile(r);
+            else sum.Messages.Add("Path not found: " + r);
+        }
+        if (capped) sum.Messages.Add($"Stopped after {MaxFiles} files — index a narrower folder (or run it again on subfolders) for the rest.");
+        return files;
+    }
+
+    public IndexSummary IndexPaths(IEnumerable<string> roots, Action<ProgressEvent> progress, bool describePhotos = false)
+    {
+        lock (_lock)
+        {
+            if (_indexing) throw new InvalidOperationException("Indexing is already running — wait for it to finish.");
+            _indexing = true;
+        }
+        try
+        {
+            _describePhotos = describePhotos;
+            var sw = Stopwatch.StartNew();
+            var sum = new IndexSummary();
+            progress(new ProgressEvent { Stage = "scanning" });
+            var files = Enumerate(roots, sum);
+            sum.FilesSeen = files.Count;
+            if (files.Count == 0 && sum.Messages.Count == 0) sum.Messages.Add("No indexable files found (documents, PDFs, spreadsheets, slides, notes, code, images…).");
+            var ix = GetIndex();
+            int i = 0;
+            foreach (var f in files)
+            {
+                i++;
+                var name = Path.GetFileName(f);
+                int cur = i;
+                progress(new ProgressEvent { Stage = "indexing", Current = cur, Total = files.Count, File = name });
+                Action<string> status = s => progress(new ProgressEvent { Stage = "indexing", Current = cur, Total = files.Count, File = name + " — " + s });
+                try
+                {
+                    var (outcome, nChunks) = IndexOne(ix, f, status);
+                    switch (outcome)
+                    {
+                        case "added": sum.Added++; sum.ChunksAdded += nChunks; break;
+                        case "updated": sum.Updated++; sum.ChunksAdded += nChunks; break;
+                        case "unchanged": sum.Unchanged++; break;
+                        default: sum.Skipped++; break;
+                    }
+                }
+                catch (NotSupportedException nse)
+                {
+                    sum.Skipped++;
+                    RecordOutcome(f, "skipped", nse.Message);
+                }
+                catch (Exception ex)
+                {
+                    sum.Failed++;
+                    var msg = $"{name}: {ex.Message}";
+                    if (sum.Messages.Count < 25) sum.Messages.Add(msg);
+                    _log("Index failed — " + msg);
+                    RecordOutcome(f, "error", ex.Message);
+                }
+                if (i % 15 == 0) Save();
+            }
+            lock (_lock) _lexDirty = true;
+            Save();
+            sum.Seconds = Math.Round(sw.Elapsed.TotalSeconds, 1);
+            _log($"IndexPaths done: +{sum.Added} ~{sum.Updated} ={sum.Unchanged} skip={sum.Skipped} fail={sum.Failed} chunks+={sum.ChunksAdded} in {sum.Seconds}s");
+            return sum;
+        }
+        finally { lock (_lock) _indexing = false; }
+    }
+
+    private void RecordOutcome(string path, string status, string note)
+    {
+        try
+        {
+            var fi = new FileInfo(path);
+            lock (_lock)
+            {
+                RemoveChunksLocked(path, _index);
+                _docs[path] = new DocInfo { Path = path, Name = fi.Name, Ext = fi.Extension.ToLowerInvariant(), SizeBytes = fi.Length, ModifiedTicks = fi.LastWriteTimeUtc.Ticks, Status = status, Note = note };
+            }
+        }
+        catch { }
+    }
+
+    private void RemoveChunksLocked(string path, AppContentIndexer? ix)
+    {
+        if (_docChunks.TryGetValue(path, out var ids))
+        {
+            if (ix != null && ids.Count > 0)
+            {
+                try { ix.RemoveContentItems(ids); }
+                catch { foreach (var id in ids) { try { ix.RemoveContentItem(id); } catch { } } }
+            }
+            foreach (var id in ids) _chunks.Remove(id);
+            _docChunks.Remove(path);
+        }
+    }
+
+    private (string outcome, int chunks) IndexOne(AppContentIndexer ix, string path, Action<string> status)
+    {
+        var fi = new FileInfo(path);
+        var kind = Extractor.Classify(path);
+        if (kind == FileKind.Unknown) kind = FileKind.Text;
+        DocInfo? existing;
+        lock (_lock) _docs.TryGetValue(path, out existing);
+
+        // an image skipped earlier for having no text should be revisited when the user turns on photo descriptions
+        bool revisitPhoto = existing != null && existing.Status == "skipped" && kind == FileKind.Image && _describePhotos && !existing.Note.Contains("described");
+        if (existing != null && (existing.Status == "indexed" || existing.Status == "skipped") && existing.SizeBytes == fi.Length && existing.ModifiedTicks == fi.LastWriteTimeUtc.Ticks && !revisitPhoto)
+            return ("unchanged", 0);
+
+        var info = new DocInfo { Path = path, Name = fi.Name, Ext = fi.Extension.ToLowerInvariant(), SizeBytes = fi.Length, ModifiedTicks = fi.LastWriteTimeUtc.Ticks };
+        bool readsWholeFile = kind is FileKind.Pdf or FileKind.Docx or FileKind.Pptx or FileKind.Xlsx or FileKind.Odf or FileKind.Epub or FileKind.Image or FileKind.Ipynb;
+        if (readsWholeFile && fi.Length > Extractor.MaxFileBytes)
+        {
+            info.Status = "skipped"; info.Note = "File is larger than 250 MB.";
+            lock (_lock) { RemoveChunksLocked(path, ix); _docs[path] = info; }
+            return ("skipped", 0);
+        }
+
+        var res = Extractor.Extract(path, kind, new ExtractOptions { DescribePhotos = _describePhotos, Status = status });
+        info.Pages = res.Pages;
+        var recs = new List<ChunkRec>();
+        var key = DocKey(path);
+        int n = 0;
+        bool capped = false;
+        foreach (var u in res.Units)
+            foreach (var (loc, text) in Extractor.Chunk(u))
+            {
+                if (n >= Extractor.MaxChunksPerDoc) { capped = true; break; }
+                recs.Add(new ChunkRec { Id = $"{key}_{n++}", DocPath = path, Loc = loc, Text = text });
+            }
+
+        if (recs.Count == 0)
+        {
+            info.Status = "skipped";
+            info.Note = kind switch
+            {
+                FileKind.Image => _describePhotos ? "No text found and no description could be generated." : "No text found in this image (turn on “Describe photos” to index it by description).",
+                FileKind.Pdf => "No text could be read from this PDF.",
+                _ => "No readable text found.",
+            };
+            lock (_lock) { RemoveChunksLocked(path, ix); _docs[path] = info; }
+            return ("skipped", 0);
+        }
+
+        lock (_lock) RemoveChunksLocked(path, ix);
+        foreach (var c in recs)
+        {
+            var content = AppManagedIndexableAppContent.CreateFromString(c.Id, $"{info.Name} | {c.Loc}\n{c.Text}");
+            ix.AddOrUpdate(content);
+        }
+        info.Chunks = recs.Count;
+        info.Status = "indexed";
+        info.Note = (res.Note + (capped ? $" Only the first {Extractor.MaxChunksPerDoc} passages were indexed." : "")).Trim();
+        lock (_lock)
+        {
+            _docs[path] = info;
+            _docChunks[path] = recs.Select(r => r.Id).ToList();
+            foreach (var c in recs) _chunks[c.Id] = c;
+        }
+        return (existing == null || existing.Status != "indexed" ? "added" : "updated", recs.Count);
+    }
+

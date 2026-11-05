@@ -1,0 +1,156 @@
+customer_id,name,occupation,expected_monthly_volume,risk_rating,pep_status
+C-10100,Elena Lindqvist,Logistics Coordinator,6453.62,LOW,NO
+C-10101,Sven Petrov,Small Business Owner,372.80,LOW,NO
+C-10102,Zara Okafor,Graphic Designer,5507.76,LOW,NO
+C-10103,Pavel Moreau,Marketing Manager,1545.88,LOW,NO
+C-10104,Marco Kowalski,Small Business Owner,4149.18,LOW,NO
+C-10105,Karim Conti,Retail Manager,397.55,LOW,NO
+C-10106,Erik Mueller,Registered Nurse,647.98,LOW,NO
+C-10107,Felix Andersen,Graphic Designer,3482.03,LOW,NO
+C-10108,Rashid Garcia,Sales Representative,4083.16,LOW,NO
+C-10109,Marco Petrov,Civil Servant,4026.41,HIGH,NO
+C-10110,Anton Andersen,Graphic Designer,3842.74,LOW,NO
+C-10111,Youssef Berg,Registered Nurse,1688.94,LOW,NO
+C-10112,Greta Larsen,Retail Manager,3737.18,LOW,NO
+C-10113,Priya Lindqvist,Small Business Owner,3321.33,LOW,NO
+C-10114,Mateus Rossi,Small Business Owner,1144.92,MEDIUM,NO
+C-10115,Felix Wagner,Accountant,944.49,LOW,NO
+C-10116,Dario Hansen,Small Business Owner,410.75,LOW,NO
+C-10117,Greta Roux,Registered Nurse,692.35,MEDIUM,NO
+C-10118,Mira Nowak,Registered Nurse,5876.87,LOW,NO
+C-10119,Elena Nowak,Administrative Assistant,1022.36,LOW,NO
+C-10120,Isabel Silva,Consultant,3803.14,MEDIUM,NO
+C-10121,Dario Weber,Consultant,1627.10,LOW,NO
+C-10122,Pavel Costa,Marketing Manager,6474.86,LOW,NO
+C-10123,Elena Petrov,Registered Nurse,543.44,LOW,NO
+C-10124,Elena Novak,Registered Nurse,213.63,LOW,NO
+C-10125,Felix Rossi,Graphic Designer,6916.52,LOW,NO
+C-10126,Jonas Silva,Consultant,2568.45,MEDIUM,NO
+C-10127,Isabel Larsen,Electrician,3055.65,LOW,NO
+C-10128,Jonas Lund,Registered Nurse,2567.83,HIGH,NO
+C-10129,Sven Rossi,Small Business Owner,1755.31,LOW,NO
+C-10130,Marco Costa,Accountant,741.26,LOW,NO
+C-10131,Chiara Ferrari,Logistics Coordinator,5863.30,LOW,NO
+C-10132,Bruno Moreau,Administrative Assistant,250.02,LOW,NO
+C-10133,Sofia Schmidt,Teacher,966.96,LOW,NO
+C-10134,Sofia Conti,Logistics Coordinator,3847.03,LOW,NO
+C-10135,Hannah Petrov,Consultant,7012.13,LOW,NO
+C-10136,Layla Haddad,Retail Manager,5924.56,LOW,NO
+C-10137,Lucia Andersen,Registered Nurse,4740.57,LOW,NO
+C-10138,Chiara Wagner,Registered Nurse,2636.71,LOW,NO
+C-10139,Ingrid Dubois,Consultant,325.02,LOW,NO
+C-10140,Greta Kowalski,Teacher,923.84,LOW,NO
+C-10141,Anton Berg,Teacher,6792.00,MEDIUM,NO
+C-10142,Anton Wagner,Retail Manager,1559.25,LOW,NO
+C-10143,Youssef Lund,Graphic Designer,1976.72,LOW,NO
+C-10144,Rashid Wagner,Teacher,7349.91,MEDIUM,NO
+C-10145,Tomas Petrov,Sales Representative,4079.05,LOW,NO
+C-10146,Ingrid Roux,Sales Representative,1023.45,LOW,NO
+C-10147,Mateus Lund,Electrician,5021.66,MEDIUM,NO
+C-10148,Felix Silva,Marketing Manager,1025.58,LOW,NO
+C-10149,Jonas Dubois,Consultant,150.00,LOW,NO
+C-10150,Sofia Andersen,Accountant,1450.45,LOW,NO
+C-10151,Nadia Garcia,Administrative Assistant,6374.87,LOW,NO
+C-10152,Rashid Hansen,Logistics Coordinator,4265.20,HIGH,NO
+C-10153,Lucia Nowak,Graphic Designer,2255.31,HIGH,NO
+C-10154,Priya Kowalski,Electrician,2911.06,LOW,NO
+C-10155,Anton Novak,Civil Servant,2701.44,LOW,NO
+C-10156,Zara Meyer,Logistics Coordinator,5033.73,MEDIUM,NO
+C-10157,Zara Conti,Teacher,4432.79,LOW,NO
+C-10158,Mateus Larsen,Retail Manager,6465.22,LOW,NO
+C-10159,Isabel Roux,Software Engineer,3137.68,LOW,NO
+C-10160,Karim Novak,Retail Manager,5350.98,LOW,NO
+C-10161,Tomas Marino,Civil Servant,3348.04,LOW,NO
+C-10162,Lucia Weber,Logistics Coordinator,4629.71,LOW,NO
+C-10163,Elena Silva,Small Business Owner,619.20,LOW,NO
+C-10164,Jonas Okafor,Sales Representative,3819.85,LOW,NO
+C-10165,Hannah Weber,Registered Nurse,3926.85,LOW,NO
+C-10166,Pavel Bianchi,Sales Representative,253.99,LOW,NO
+C-10167,Pavel Rossi,Administrative Assistant,4165.20,LOW,NO
+C-10168,Mira Mueller,Consultant,1284.35,LOW,NO
+C-10169,Isabel Hansen,Small Business Owner,150.00,MEDIUM,NO
+C-10170,Felix Rasmussen,Accountant,3360.41,LOW,NO
+C-10171,Bruno Weber,Graphic Designer,737.29,LOW,NO
+C-10172,Mateus Garcia,Accountant,907.12,LOW,NO
+C-10173,Dario Rossi,Teacher,150.00,LOW,NO
+C-10174,Ahmed Meyer,Civil Servant,977.40,LOW,NO
+C-10175,Youssef Okafor,Sales Representative,1807.82,LOW,NO
+C-10176,Hannah Ferrari,Graphic Designer,502.91,LOW,NO
+C-10177,Sofia Haddad,Civil Servant,842.10,HIGH,NO
+C-10178,Amara Lund,Graphic Designer,5118.43,MEDIUM,NO
+C-10179,Bruno Bianchi,Electrician,639.21,MEDIUM,NO
+C-10180,Felix Okafor,Administrative Assistant,2681.17,LOW,NO
+C-10181,Isabel Nowak,Administrative Assistant,1462.29,LOW,NO
+C-10182,Anton Ferrari,Software Engineer,1365.24,MEDIUM,NO
+C-10183,Rashid Novak,Marketing Manager,4612.60,LOW,NO
+C-10184,Erik Sorensen,Civil Servant,5807.47,LOW,NO
+C-10185,Mira Costa,Accountant,4462.63,LOW,NO
+C-10186,Zara Haddad,Accountant,2071.14,LOW,NO
+C-10187,Mira Moreau,Electrician,3739.03,LOW,NO
+C-10188,Chiara Berg,Registered Nurse,973.72,LOW,NO
+C-10189,Nadia Okafor,Teacher,3964.52,LOW,NO
+C-10190,Tomas Costa,Electrician,3541.07,MEDIUM,NO
+C-10191,Erik Rossi,Logistics Coordinator,5057.78,LOW,NO
+C-10192,Nadia Petrov,Software Engineer,790.66,LOW,NO
+C-10193,Hannah Hansen,Logistics Coordinator,3647.97,LOW,NO
+C-10194,Hannah Moreau,Accountant,897.90,LOW,NO
+C-10195,Nadia Roux,Accountant,3873.89,LOW,NO
+C-10196,Marco Garcia,Teacher,3229.97,HIGH,NO
+C-10197,Felix Weber,Software Engineer,4054.89,LOW,NO
+C-10198,Marco Schmidt,Civil Servant,6732.15,LOW,NO
+C-10199,Mira Schmidt,Registered Nurse,5104.36,LOW,NO
+C-10200,Felix Marino,Retail Manager,5323.05,LOW,NO
+C-10201,Marco Weber,Accountant,175.33,LOW,NO
+C-10202,Nadia Weber,Accountant,1776.97,LOW,NO
+C-10203,Anton Rossi,Administrative Assistant,479.79,HIGH,NO
+C-10204,Jonas Lindqvist,Retail Manager,1021.99,LOW,NO
+C-10205,Tomas Rasmussen,Logistics Coordinator,1723.45,LOW,NO
+C-10206,Ahmed Andersen,Administrative Assistant,2755.87,LOW,NO
+C-10207,Tomas Garcia,Administrative Assistant,1219.35,LOW,NO
+C-10208,Tomas Sorensen,Administrative Assistant,6304.32,MEDIUM,NO
+C-10209,Lucia Rasmussen,Graphic Designer,4421.55,LOW,NO
+C-10210,Elena Ferrari,Retail Manager,4520.03,MEDIUM,NO
+C-10211,Noor Lindqvist,Consultant,5117.92,LOW,NO
+C-10212,Marco Marino,Accountant,3925.25,LOW,NO
+C-10213,Felix Garcia,Accountant,8161.91,MEDIUM,NO
+C-10214,Ahmed Nowak,Administrative Assistant,2045.81,LOW,NO
+C-10215,Karim Meyer,Civil Servant,3851.28,LOW,NO
+C-10216,Mira Conti,Marketing Manager,812.68,LOW,NO
+C-10217,Erik Nowak,Small Business Owner,7110.91,LOW,NO
+C-10218,Mira Lindqvist,Sales Representative,596.73,HIGH,NO
+C-10219,Youssef Novak,Small Business Owner,5734.93,MEDIUM,NO
+C-10220,Ahmed Dubois,Sales Representative,968.89,LOW,NO
+C-10221,Tomas Andersen,Accountant,3121.41,LOW,NO
+C-10222,Bruno Schmidt,Civil Servant,4542.29,LOW,NO
+C-10223,Ingrid Nowak,Registered Nurse,4790.52,LOW,NO
+C-10224,Greta Costa,Logistics Coordinator,3308.08,LOW,NO
+C-10225,Greta Lund,Civil Servant,6565.25,LOW,NO
+C-10226,Elena Andersen,Graphic Designer,6604.64,LOW,NO
+C-10227,Tomas Okafor,Logistics Coordinator,7546.25,LOW,NO
+C-10228,Anton Moreau,Retail Manager,5277.74,LOW,NO
+C-10229,Tomas Larsen,Administrative Assistant,5666.23,LOW,NO
+C-10230,Jonas Costa,Sales Representative,5948.13,LOW,NO
+C-10231,Sofia Petrov,Administrative Assistant,1011.72,LOW,NO
+C-10232,Amara Kowalski,Consultant,733.22,LOW,NO
+C-10233,Sven Conti,Sales Representative,1783.84,LOW,NO
+C-10234,Youssef Roux,Logistics Coordinator,1218.37,LOW,NO
+C-10235,Hannah Nowak,Software Engineer,2784.14,LOW,NO
+C-10236,Elena Kowalski,Accountant,5179.46,LOW,NO
+C-10237,Sofia Marino,Administrative Assistant,1489.31,LOW,NO
+C-10238,Youssef Kowalski,Consultant,6219.58,LOW,NO
+C-10239,Sofia Ferrari,Small Business Owner,1938.44,LOW,NO
+C-10240,Erik Lindqvist,Registered Nurse,4094.07,MEDIUM,NO
+C-10241,Youssef Wagner,Civil Servant,1836.21,LOW,NO
+C-10242,Sven Marino,Logistics Coordinator,2087.38,LOW,NO
+C-10243,Bruno Rasmussen,Software Engineer,5404.55,LOW,NO
+C-10244,Sven Schmidt,Logistics Coordinator,1873.00,LOW,NO
+C-10245,Elena Lund,Accountant,4824.88,MEDIUM,NO
+C-10246,Jonas Nowak,Marketing Manager,1766.46,LOW,NO
+C-10247,Ahmed Lindqvist,Marketing Manager,150.00,LOW,NO
+C-10248,Sofia Okafor,Consultant,469.49,LOW,NO
+C-10249,Erik Dubois,Civil Servant,6688.68,LOW,YES
+C-20001,Erik Kowalski,Graphic Designer,320.00,LOW,NO
+C-20002,Pavel Petrov,Administrative Assistant,280.00,LOW,NO
+C-20003,Noor Wagner,Retail Manager,1500.00,LOW,NO
+C-20004,Zara Andersen,Teacher,210.00,LOW,NO
+C-20005,Chiara Lindqvist,Electrician,150.00,LOW,NO

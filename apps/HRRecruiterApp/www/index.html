@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Recruiter Agent — On-Device AI</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0b0e;--bg2:#101216;--bg3:#161920;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e8eaed;--text2:#8b909c;--text3:#52565f;
+  --accent:#a78bfa;--accent2:#8b5cf6;--accent-dim:rgba(167,139,250,0.12);--accent-dim2:rgba(167,139,250,0.06);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.12);
+  --green:#4ade80;--green-dim:rgba(74,222,128,0.12);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.12);
+  --blue:#60a5fa;--blue-dim:rgba(96,165,250,0.12);
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --r:10px;--r2:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:200;}
+.nav-brand{display:flex;align-items:center;gap:10px;}
+.nav-logo{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.nav-title{font-size:15px;font-weight:500;letter-spacing:-0.02em;}
+.nav-title span{color:var(--accent);}
+.nav-pills{display:flex;gap:6px;align-items:center;}
+.pill{font-size:11px;font-family:var(--mono);padding:3px 9px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);background:var(--bg2);}
+.pill.local{border-color:rgba(74,222,128,0.35);color:var(--green);background:var(--green-dim);display:flex;align-items:center;gap:5px;}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);}
+.proveit-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;font-size:11px;font-family:var(--mono);color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.proveit-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.app{flex:1;display:grid;grid-template-columns:190px 1fr 340px;min-height:0;}
+
+.leftnav{border-right:1px solid var(--border);padding:16px 10px;display:flex;flex-direction:column;gap:2px;background:var(--bg2);}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:7px;font-size:12.5px;color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);}
+.nav-sep{height:1px;background:var(--border);margin:10px 4px;}
+.nav-mini-status{margin-top:auto;padding:10px;background:var(--bg3);border-radius:8px;font-size:10.5px;color:var(--text2);line-height:1.7;}
+.nav-mini-status .sdot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;}
+
+main{overflow-y:auto;padding:22px 26px;}
+.view{display:none;}
+.view.active{display:block;animation:fadeIn 0.25s ease;}
+.sh{font-size:10px;font-family:var(--mono);letter-spacing:0.1em;color:var(--text3);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.sh::after{content:'';flex:1;height:1px;background:var(--border);}
+.page-title{font-size:18px;font-weight:500;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--text2);margin-bottom:18px;}
+
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;}
+.stat-v{font-family:var(--mono);font-size:24px;font-weight:500;color:var(--text);}
+.stat-l{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;}
+.stat-card.alert .stat-v{color:var(--red);}
+.stat-card.warn .stat-v{color:var(--amber);}
+.stat-card.good .stat-v{color:var(--green);}
+
+.upload-zone{border:1px dashed var(--border2);border-radius:var(--r);background:var(--bg2);padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-dim2);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.upload-title{font-size:13px;font-weight:500;margin-bottom:3px;}
+.upload-sub{font-size:11px;color:var(--text2);}
+
+.data-table{width:100%;border-collapse:collapse;font-size:12px;}
+.data-table th{text-align:left;font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border-bottom:1px solid var(--border2);}
+.data-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top;}
+.data-table tr.clickable{cursor:pointer;transition:background 0.15s;}
+.data-table tr.clickable:hover{background:var(--bg2);}
+.badge{font-family:var(--mono);font-size:11px;font-weight:500;padding:2px 8px;border-radius:10px;white-space:nowrap;}
+.badge.high{background:var(--green-dim);color:var(--green);}
+.badge.medium{background:var(--amber-dim);color:var(--amber);}
+.badge.low{background:var(--red-dim);color:var(--red);}
+.badge.met{background:var(--green-dim);color:var(--green);}
+.badge.partial{background:var(--amber-dim);color:var(--amber);}
+.badge.notmet{background:var(--red-dim);color:var(--red);}
+.badge.must{background:var(--accent-dim);color:var(--accent);}
+.badge.nice{background:var(--blue-dim);color:var(--blue);}
+.empty-note{font-size:12px;color:var(--text3);padding:16px 0;text-align:center;}
+
+.back-link{font-size:11px;color:var(--text2);cursor:pointer;margin-bottom:14px;display:inline-flex;align-items:center;gap:5px;}
+.back-link:hover{color:var(--accent);}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px;}
+.page-id{font-size:20px;font-weight:500;}
+.btn{padding:8px 16px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);transition:all 0.15s;}
+.btn:hover{border-color:var(--text);color:var(--text);}
+.btn.primary{background:var(--accent);color:#140a2b;border-color:var(--accent);}
+.btn.primary:hover{background:var(--accent2);}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+.btn.small{padding:4px 10px;font-size:11px;}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:16px;}
+.card-title{font-size:12.5px;font-weight:500;margin-bottom:12px;display:flex;align-items:center;gap:7px;}
+
+.score-box{display:flex;align-items:center;gap:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:18px;}
+.score-num{font-family:var(--mono);font-size:34px;font-weight:500;}
+.score-num.high{color:var(--green);}
+.score-num.medium{color:var(--amber);}
+.score-num.low{color:var(--red);}
+.score-meta{flex:1;}
+.score-label{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;}
+.score-sub{font-size:12.5px;color:var(--text);}
+
+.req-item{border-bottom:1px solid var(--border);padding:10px 0;}
+.req-item:last-child{border-bottom:none;}
+.req-head{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;}
+.req-text{font-size:12.5px;flex:1;}
+.req-badges{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.evidence-box{margin-top:8px;padding:10px 12px;background:var(--bg3);border-radius:7px;font-size:11.5px;display:none;}
+.evidence-box.visible{display:block;animation:fadeIn 0.2s ease;}
+.evidence-row{margin-bottom:6px;}
+.evidence-row:last-child{margin-bottom:0;}
+.evidence-label{font-family:var(--mono);font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;}
+.evidence-quote{color:var(--text);font-style:italic;}
+
+.list-item{display:flex;gap:9px;align-items:flex-start;padding:7px 0;font-size:12.5px;line-height:1.5;}
+.list-item .dot{flex-shrink:0;margin-top:5px;width:6px;height:6px;border-radius:50%;}
+.list-item.strength .dot{background:var(--green);}
+.list-item.gap .dot{background:var(--amber);}
+
+.iq-item{border-bottom:1px solid var(--border);padding:10px 0;}
+.iq-item:last-child{border-bottom:none;}
+.iq-q{font-size:12.5px;font-weight:500;margin-bottom:3px;}
+.iq-r{font-size:11.5px;color:var(--text2);}
+
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.profile-field{margin-bottom:10px;}
+.profile-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;font-family:var(--mono);}
+.profile-value{font-size:12.5px;}
+.work-item{border-left:2px solid var(--border2);padding-left:12px;margin-bottom:12px;}
+.work-title{font-size:12.5px;font-weight:500;}
+.work-meta{font-size:11px;color:var(--text2);margin-bottom:3px;}
+.work-desc{font-size:11.5px;color:var(--text2);}
+.skill-chip{display:inline-block;font-size:11px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:12px;padding:3px 10px;margin:0 5px 5px 0;}
+
+.loading-inline{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text2);}
+.spinner{width:12px;height:12px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;}
+
+.copilot{border-left:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;min-height:0;}
+.copilot-head{padding:14px 16px;border-bottom:1px solid var(--border);}
+.copilot-title{font-size:12.5px;font-weight:500;display:flex;align-items:center;gap:7px;}
+.copilot-sub{font-size:10.5px;color:var(--text3);margin-top:2px;}
+.copilot-body{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+.msg{font-size:12px;line-height:1.55;padding:9px 11px;border-radius:9px;max-width:100%;}
+.msg.user{background:var(--accent-dim);color:var(--text);align-self:flex-end;}
+.msg.ai{background:var(--bg3);color:var(--text);}
+.msg.ai.typing{color:var(--text2);font-style:italic;}
+.copilot-examples{display:flex;flex-direction:column;gap:6px;padding:0 16px 10px;}
+.copilot-chip{font-size:11px;text-align:left;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:7px;padding:7px 10px;cursor:pointer;transition:all 0.15s;}
+.copilot-chip:hover{border-color:var(--accent);color:var(--accent);}
+.copilot-input-row{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;}
+.copilot-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 11px;font-size:12px;color:var(--text);font-family:var(--sans);}
+.copilot-input:focus{outline:none;border-color:var(--accent);}
+.copilot-send{background:var(--accent);color:#140a2b;border:none;border-radius:7px;padding:0 14px;font-size:12px;font-weight:500;cursor:pointer;}
+.copilot-send:disabled{opacity:0.4;cursor:not-allowed;}
+
+.role-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:8px;}
+.role-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:all 0.15s;}
+.role-card:hover{border-color:var(--accent);}
+.role-name{font-size:13.5px;font-weight:500;margin-bottom:4px;}
+.role-company{font-size:11px;color:var(--text3);margin-bottom:8px;}
+.role-mini-stats{display:flex;gap:14px;font-size:11px;color:var(--text2);}
+.role-mini-stats b{color:var(--text);font-family:var(--mono);}
+
+.security-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.sec-row{display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg3);border-radius:7px;font-size:12px;}
+.sec-row b{font-family:var(--mono);}
+.sec-row.ok b{color:var(--green);}
+
+textarea.jd-input{width:100%;min-height:220px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:12px;font-size:12.5px;color:var(--text);font-family:var(--sans);resize:vertical;}
+textarea.jd-input:focus{outline:none;border-color:var(--accent);}
+input.text-input{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 11px;font-size:12.5px;color:var(--text);font-family:var(--sans);width:100%;}
+input.text-input:focus{outline:none;border-color:var(--accent);}
+.form-row{margin-bottom:12px;}
+.form-label{font-size:11px;color:var(--text2);margin-bottom:5px;display:block;}
+
+.toast-wrap{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:999;display:flex;flex-direction:column;gap:8px;align-items:center;}
+.toast{background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-size:12px;padding:9px 16px;border-radius:20px;animation:fadeIn 0.2s ease;box-shadow:0 4px 14px rgba(0,0,0,0.4);}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">🧑‍💼</div>
+    <div class="nav-title">HR <span>Recruiter Agent</span></div>
+  </div>
+  <div class="nav-pills">
+    <span class="pill local" id="localPill"><span class="pill-dot"></span> Local AI</span>
+    <button class="proveit-btn" id="proveItBtn">Prove it →</button>
+  </div>
+</nav>
+
+<div class="app">
+  <div class="leftnav">
+    <div class="nav-item active" data-view="dashboard">📊 Dashboard</div>
+    <div class="nav-item" data-view="newrole">➕ New Role</div>
+    <div class="nav-item" data-view="roles">🗂 Roles</div>
+    <div class="nav-sep"></div>
+    <div class="nav-item" data-view="responsibleai">🛡 Responsible AI</div>
+    <div class="nav-mini-status" id="navMiniStatus">
+      <div><span class="sdot" style="background:var(--green)"></span>0 external calls</div>
+      <div><span class="sdot" style="background:var(--green)"></span>0 bytes uploaded</div>
+    </div>
+  </div>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div class="page-title">Dashboard</div>
+      <div class="page-sub">On-device candidate screening across all open roles.</div>
+      <div class="stat-row" id="dashStats"></div>
+      <div class="sh">Open Roles</div>
+      <div class="role-grid" id="dashRoleGrid"></div>
+    </div>
+
+    <!-- NEW ROLE -->
+    <div class="view" id="view-newrole">
+      <div class="page-title">New Role</div>
+      <div class="page-sub">Paste or upload a job description — the Role Analyzer extracts structured, checkable requirements on-device.</div>
+
+      <div class="form-row">
+        <label class="form-label">…or fetch from a job posting URL (Indeed, LinkedIn, Upwork, etc.)</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" class="text-input" id="jdUrlInput" placeholder="https://www.indeed.com/viewjob?jk=..." style="flex:1;">
+          <button class="btn" id="fetchJdUrlBtn" style="white-space:nowrap;">🔗 Fetch</button>
+        </div>
+        <div id="jdUrlStatus" style="margin-top:6px;font-size:11.5px;color:var(--text2);"></div>
+      </div>
+      <div class="form-row">
+        <label class="form-label">Job description text</label>
+        <textarea class="jd-input" id="jdTextInput" placeholder="Paste the job posting here — straight from Indeed, LinkedIn, Upwork, or anywhere else. The Role Analyzer ignores site navigation, cookie banners, and other page clutter automatically."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="upload-zone" data-doc="jd" style="text-align:left;padding:14px 18px;">
+          <div class="upload-title" id="jdDropLabel" data-default-label="📄 …or upload a job description PDF">📄 …or upload a job description PDF</div>
+          <div class="upload-sub">Click or drop a PDF — its text will replace the box above</div>
+          <input type="file" accept="application/pdf">
+        </div>
+      </div>
+      <button class="btn primary" id="analyzeRoleBtn" disabled>🧠 Analyze Role</button>
+      <div id="newRoleStatus" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+
+    <!-- ROLES LIST -->
+    <div class="view" id="view-roles">
+      <div class="page-title">Roles</div>
+      <div class="page-sub">All roles analyzed in this session.</div>
+      <div class="role-grid" id="rolesGrid"></div>
+    </div>
+
+    <!-- ROLE DETAIL (dynamic) -->
+    <div class="view" id="view-roledetail">
+      <div class="back-link" data-back="roles">← Back to roles</div>
+      <div id="roleDetailBody"></div>
+    </div>
+
+    <!-- CANDIDATE PROFILE (dynamic) -->
+    <div class="view" id="view-candidate">
+      <div class="back-link" id="candidateBackLink">← Back to role</div>
+      <div id="candidateBody"></div>
+    </div>
+
+    <!-- RESPONSIBLE AI -->
+    <div class="view" id="view-responsibleai">
+      <div class="page-title">Responsible AI</div>
+      <div class="page-sub">This entire application runs its AI inference on this device, with explicit guardrails on what the model is allowed to consider.</div>
+
+      <div class="card">
+        <div class="card-title">🔐 On-device architecture</div>
+        <div class="security-grid">
+          <div class="sec-row ok"><span>AI inference</span><b>LOCAL</b></div>
+          <div class="sec-row ok"><span>Résumés uploaded externally</span><b>0</b></div>
+          <div class="sec-row ok"><span>External AI API calls</span><b>0</b></div>
+          <div class="sec-row ok"><span>Internet required</span><b>NO*</b></div>
+          <div class="sec-row ok"><span>AI model</span><b>Local (Phi Silica)</b></div>
+          <div class="sec-row ok"><span>Hardware acceleration</span><b>NPU</b></div>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.6;">
+          Résumé text extraction (PdfPig), candidate profile/fit reasoning, interview question generation,
+          duplicate-application search (on-device semantic index), and the Recruiting Copilot all run through
+          <code>Microsoft.Windows.AI.*</code> APIs directly on this PC's NPU — no résumé, candidate name, or
+          assessment ever leaves the device. *Internet is not required for inference once the on-device model is provisioned.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚖ Fairness guardrail</div>
+        <p style="font-size:12px;color:var(--text2);line-height:1.7;">
+          Every fit-assessment prompt sent to the model includes this explicit instruction, verbatim:
+        </p>
+        <div class="evidence-box visible" style="margin-top:8px;">
+          <span class="evidence-quote">"Base your evaluation ONLY on job-relevant qualifications: skills, experience,
+          education, and certifications found in the résumé text. Do NOT factor in the candidate's name, gender, age,
+          ethnicity, nationality, or any other characteristic not directly relevant to job qualifications — evaluate
+          the work only."</span>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-top:10px;line-height:1.6;">
+          This is a prompting guardrail, not a formal fairness guarantee — the recruiter should still review every
+          assessment and evidence trail before making a decision. Every score is fully traceable back to the exact
+          résumé text that produced it via "Show me the evidence."
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚙ Model readiness</div>
+        <button class="btn" id="checkReadyBtn">Check on-device model</button>
+        <span id="readyResult" style="margin-left:10px;font-size:12px;"></span>
+      </div>
+    </div>
+  </main>
+
+  <!-- RECRUITING COPILOT -->
+  <div class="copilot">
+    <div class="copilot-head">
+      <div class="copilot-title">🧭 Recruiting Copilot</div>
+      <div class="copilot-sub" id="copilotContext">Open a role or candidate to start</div>
+    </div>
+    <div class="copilot-body" id="copilotBody"></div>
+    <div class="copilot-examples" id="copilotExamples"></div>
+    <div class="copilot-input-row">
+      <input class="copilot-input" id="copilotInput" placeholder="Ask about this role or candidate…" disabled>
+      <button class="copilot-send" id="copilotSend" disabled>Ask</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

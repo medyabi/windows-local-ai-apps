@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reading Room Assistant — On-Device AI</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#07080a;--bg2:#0d0f13;--bg3:#14171d;--bg4:#1b1f27;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.14);
+  --text:#e8eaed;--text2:#8b909c;--text3:#52565f;
+  --ai:#f59e0b;--ai-dim:rgba(245,158,11,0.13);--ai-dim2:rgba(245,158,11,0.06);
+  --md:#22d3ee;--md-dim:rgba(34,211,238,0.13);--md-dim2:rgba(34,211,238,0.06);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.14);
+  --green:#4ade80;--green-dim:rgba(74,222,128,0.13);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.13);
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --r:9px;--r2:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:13.5px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;user-select:none;}
+input,textarea{user-select:text;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.45;}}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:46px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:300;flex-shrink:0;}
+.nav-brand{display:flex;align-items:center;gap:9px;}
+.nav-logo{width:26px;height:26px;background:var(--md);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+.nav-title{font-size:14px;font-weight:500;letter-spacing:-0.02em;}
+.nav-title span{color:var(--md);}
+.nav-pills{display:flex;gap:6px;align-items:center;}
+.pill{font-size:10.5px;font-family:var(--mono);padding:3px 9px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);background:var(--bg2);}
+.pill.local{border-color:rgba(74,222,128,0.35);color:var(--green);background:var(--green-dim);display:flex;align-items:center;gap:5px;}
+.pill-dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);}
+
+.shell{flex:1;display:grid;grid-template-columns:168px 1fr;min-height:0;}
+.leftnav{border-right:1px solid var(--border);padding:14px 9px;display:flex;flex-direction:column;gap:2px;background:var(--bg2);flex-shrink:0;}
+.nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;font-size:12px;color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--md-dim);color:var(--md);}
+.nav-sep{height:1px;background:var(--border);margin:9px 3px;}
+.nav-mini{margin-top:auto;padding:9px;background:var(--bg3);border-radius:8px;font-size:9.5px;color:var(--text2);line-height:1.7;}
+.nav-mini .sdot{display:inline-block;width:5px;height:5px;border-radius:50%;margin-right:5px;}
+
+.view{display:none;overflow:hidden;min-height:0;}
+.view.active{display:flex;flex-direction:column;min-height:0;animation:fadeIn 0.2s ease;}
+
+/* ── WORKLIST ── */
+.wl-wrap{padding:18px 22px;overflow-y:auto;}
+.page-title{font-size:17px;font-weight:500;margin-bottom:3px;}
+.page-sub{font-size:11.5px;color:var(--text2);margin-bottom:16px;}
+.data-table{width:100%;border-collapse:collapse;font-size:11.8px;}
+.data-table th{text-align:left;font-family:var(--mono);font-size:9.5px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:7px 10px;border-bottom:1px solid var(--border2);}
+.data-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.data-table tr.clickable{cursor:pointer;transition:background 0.12s;}
+.data-table tr.clickable:hover{background:var(--bg3);}
+.data-table tr.pri-row{background:linear-gradient(90deg, rgba(245,158,11,0.07), transparent 40%);}
+.pri-stripe{width:4px;height:26px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:8px;}
+.pri-stripe.stat{background:var(--red);box-shadow:0 0 6px var(--red);}
+.pri-stripe.high{background:var(--ai);}
+.pri-stripe.routine{background:var(--border2);}
+.status-badge{font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 8px;border-radius:10px;white-space:nowrap;text-transform:uppercase;letter-spacing:0.03em;}
+.status-badge.queued{background:var(--bg4);color:var(--text2);}
+.status-badge.processing{background:var(--bg4);color:var(--text2);animation:pulse 1.6s ease-in-out infinite;}
+.status-badge.prioritized{background:var(--red-dim);color:var(--red);}
+.status-badge.in_review{background:var(--amber-dim);color:var(--amber);}
+.status-badge.read{background:var(--md-dim);color:var(--md);}
+.status-badge.signed{background:var(--green-dim);color:var(--green);}
+.ai-chip{font-family:var(--mono);font-size:10.5px;color:var(--ai);background:var(--ai-dim);padding:2px 7px;border-radius:5px;white-space:nowrap;}
+.ai-chip.none{color:var(--text3);background:var(--bg4);}
+.empty-note{font-size:11.5px;color:var(--text3);padding:14px 0;text-align:center;}
+
+/* ── STUDY READING VIEW ── */
+.study-view{flex:1;display:grid;grid-template-columns:1fr 360px;min-height:0;}
+.study-top{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--bg2);flex-wrap:wrap;gap:8px;}
+.back-link{font-size:11px;color:var(--text2);cursor:pointer;display:inline-flex;align-items:center;gap:5px;margin-right:14px;}
+.back-link:hover{color:var(--md);}
+.study-info{display:flex;align-items:center;gap:16px;flex-wrap:wrap;font-size:11.5px;}
+.study-info b{font-family:var(--mono);}
+.study-info .sep{color:var(--text3);}
+.proc-strip{font-family:var(--mono);font-size:10.5px;color:var(--text2);background:var(--bg3);padding:4px 10px;border-radius:6px;}
+
+.viewer-pane{display:flex;flex-direction:column;min-height:0;border-right:1px solid var(--border);}
+.viewer-toolbar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--bg2);flex-wrap:wrap;}
+.tbtn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;transition:all .15s;}
+.tbtn:hover{border-color:var(--text);color:var(--text);}
+.tbtn.active{background:var(--md-dim);border-color:var(--md);color:var(--md);}
+.tb-sep{width:1px;height:18px;background:var(--border2);margin:0 4px;}
+.tb-label{font-size:10px;color:var(--text3);font-family:var(--mono);margin-right:2px;}
+.tb-slider{width:80px;accent-color:var(--md);}
+
+.viewer-stage{flex:1;position:relative;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;cursor:grab;}
+.viewer-stage.drawing{cursor:crosshair;}
+.viewer-stage.grabbing{cursor:grabbing;}
+.viewer-canvas{position:relative;transform-origin:center center;}
+.viewer-canvas img{display:block;max-width:none;pointer-events:none;}
+.viewer-split{display:flex;flex:1;min-height:0;}
+.viewer-split .half{flex:1;position:relative;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;}
+.viewer-split .half img{max-width:100%;max-height:100%;filter:grayscale(1);}
+.viewer-split .half-label{position:absolute;top:8px;left:8px;font-family:var(--mono);font-size:10px;background:rgba(0,0,0,0.6);color:var(--text2);padding:3px 8px;border-radius:5px;z-index:5;}
+
+.bbox{position:absolute;border-radius:3px;pointer-events:none;}
+.bbox.ai{border:2px dashed var(--ai);background:rgba(245,158,11,0.06);}
+.bbox.ai.rejected{border-color:var(--text3);background:transparent;opacity:0.45;}
+.bbox.ai.accepted{border-style:solid;}
+.bbox.md{border:2px solid var(--md);background:rgba(34,211,238,0.06);}
+.bbox-label{position:absolute;top:-20px;left:-2px;font-family:var(--mono);font-size:9.5px;padding:1px 6px;border-radius:4px;white-space:nowrap;}
+.bbox.ai .bbox-label{background:var(--ai);color:#1a1200;}
+.bbox.md .bbox-label{background:var(--md);color:#00181c;}
+
+.side-pane{display:flex;flex-direction:column;min-height:0;overflow-y:auto;background:var(--bg2);}
+.side-section{border-bottom:1px solid var(--border);padding:14px 16px;}
+.side-title{font-size:11.5px;font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:6px;justify-content:space-between;}
+.side-title .badge-src{font-family:var(--mono);font-size:9px;padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em;}
+.badge-src.ai{background:var(--ai-dim);color:var(--ai);}
+.badge-src.md{background:var(--md-dim);color:var(--md);}
+
+.finding-card{background:var(--bg3);border:1px solid var(--border);border-left:3px solid var(--ai);border-radius:7px;padding:10px 12px;margin-bottom:9px;}
+.finding-card.accepted{border-left-color:var(--green);}
+.finding-card.rejected{border-left-color:var(--text3);opacity:0.7;}
+.finding-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.finding-type{font-size:12px;font-weight:500;}
+.finding-roi{font-size:10.5px;color:var(--text2);margin-top:1px;}
+.conf-badge{font-family:var(--mono);font-size:10.5px;color:var(--ai);white-space:nowrap;}
+.conf-bar{height:3px;background:var(--bg4);border-radius:2px;margin:6px 0 8px;overflow:hidden;}
+.conf-bar-fill{height:100%;background:var(--ai);}
+.finding-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.fbtn{font-size:10.5px;padding:4px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--bg4);color:var(--text2);cursor:pointer;transition:all .15s;}
+.fbtn:hover{border-color:var(--text);color:var(--text);}
+.fbtn.accept:hover{border-color:var(--green);color:var(--green);}
+.fbtn.reject:hover{border-color:var(--red);color:var(--red);}
+.fbtn.active-accept{background:var(--green-dim);border-color:var(--green);color:var(--green);}
+.fbtn.active-reject{background:var(--red-dim);border-color:var(--red);color:var(--red);}
+.finding-explain{margin-top:8px;padding-top:8px;border-top:1px solid var(--border);font-size:10.5px;color:var(--text2);line-height:1.6;display:none;}
+.finding-explain.open{display:block;}
+.finding-explain b{color:var(--text);}
+.note-input{width:100%;margin-top:6px;background:var(--bg4);border:1px solid var(--border2);border-radius:5px;padding:6px 8px;font-size:11px;color:var(--text);font-family:var(--sans);}
+
+.prior-box{background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px 12px;}
+.prior-date{font-family:var(--mono);font-size:10.5px;color:var(--md);margin-bottom:5px;}
+.prior-summary{font-size:11.5px;color:var(--text2);line-height:1.55;font-style:italic;}
+.prior-none{font-size:11.5px;color:var(--text3);}
+
+.draft-box{background:var(--ai-dim2);border:1px solid rgba(245,158,11,0.3);border-radius:7px;padding:10px 12px;font-size:11.5px;line-height:1.55;color:var(--text);}
+.draft-flag{font-family:var(--mono);font-size:9.5px;color:var(--ai);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+.impression-textarea{width:100%;min-height:110px;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px 11px;font-size:12px;color:var(--text);font-family:var(--sans);resize:vertical;margin-top:8px;}
+.impression-textarea:focus{outline:none;border-color:var(--md);}
+.impression-textarea:disabled{opacity:0.75;}
+.btn{padding:7px 14px;border-radius:7px;font-size:11.5px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);transition:all 0.15s;}
+.btn:hover{border-color:var(--text);color:var(--text);}
+.btn.primary{background:var(--md);color:#00181c;border-color:var(--md);}
+.btn.primary:hover{background:#0891b2;}
+.btn.sign{background:var(--green);color:#00210f;border-color:var(--green);}
+.btn.sign:hover{background:#22c55e;}
+.btn:disabled{opacity:0.35;cursor:not-allowed;}
+.btn-row{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
+
+.signed-banner{background:var(--green-dim);border:1px solid rgba(74,222,128,0.35);color:var(--green);border-radius:7px;padding:9px 11px;font-size:11.5px;display:flex;align-items:center;gap:7px;}
+
+.audit-list{font-size:10.8px;color:var(--text2);display:flex;flex-direction:column;gap:5px;}
+.audit-list .a-actor{font-family:var(--mono);font-weight:500;}
+.audit-list .a-actor.AI{color:var(--ai);}
+.audit-list .a-actor.Radiologist{color:var(--md);}
+.audit-list .a-actor.System{color:var(--text3);}
+.audit-time{color:var(--text3);font-family:var(--mono);font-size:9.5px;}
+.collapse-toggle{font-size:10.5px;color:var(--text2);cursor:pointer;display:flex;align-items:center;gap:5px;}
+.collapse-body{display:none;margin-top:8px;}
+.collapse-body.open{display:block;}
+
+.loading-inline{display:inline-flex;align-items:center;gap:7px;font-size:11px;color:var(--text2);}
+.spinner{width:11px;height:11px;border:2px solid var(--border2);border-top-color:var(--md);border-radius:50%;animation:spin 0.7s linear infinite;}
+
+.kbd{font-family:var(--mono);font-size:9.5px;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;padding:1px 5px;}
+
+/* ── DASHBOARD ── */
+.dash-wrap{padding:18px 22px;overflow-y:auto;}
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;}
+.stat-v{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--text);}
+.stat-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-top:2px;}
+.stat-card.ai .stat-v{color:var(--ai);}
+.stat-card.md .stat-v{color:var(--md);}
+.stat-card.green .stat-v{color:var(--green);}
+
+/* ── RESPONSIBLE AI ── */
+.ra-wrap{padding:18px 22px;overflow-y:auto;max-width:780px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:14px;}
+.card-title{font-size:12.5px;font-weight:500;margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.security-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.sec-row{display:flex;justify-content:space-between;padding:9px 12px;background:var(--bg3);border-radius:7px;font-size:11.5px;}
+.sec-row b{font-family:var(--mono);}
+.sec-row.ok b{color:var(--green);}
+.warn-box{background:var(--red-dim);border:1px solid rgba(248,113,113,0.3);border-radius:7px;padding:10px 12px;font-size:11.5px;color:var(--text);line-height:1.6;margin-top:10px;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">🩻</div>
+    <div class="nav-title">Reading Room <span>Assistant</span></div>
+  </div>
+  <div class="nav-pills">
+    <span class="pill local" id="localPill"><span class="pill-dot"></span> Local AI</span>
+    <span class="pill">Demonstration mode — synthetic data only</span>
+  </div>
+</nav>
+
+<div class="shell">
+  <div class="leftnav">
+    <div class="nav-item active" data-view="worklist">🗂 Worklist</div>
+    <div class="nav-item" data-view="import">📥 Import Study</div>
+    <div class="nav-item" data-view="dashboard">📊 Dashboard</div>
+    <div class="nav-sep"></div>
+    <div class="nav-item" data-view="responsibleai">🔐 Responsible AI</div>
+    <div class="nav-mini" id="navMini">
+      <div><span class="sdot" style="background:var(--green)"></span>0 studies sent externally</div>
+      <div><span class="sdot" style="background:var(--green)"></span>on-device inference only</div>
+    </div>
+  </div>
+
+  <!-- WORKLIST -->
+  <div class="view active" id="view-worklist">
+    <div class="wl-wrap">
+      <div class="page-title">Radiology Worklist</div>
+      <div class="page-sub" id="wlSub">Studies awaiting review — prioritized studies are automatically moved to the top.</div>
+      <table class="data-table">
+        <thead><tr><th></th><th>Accession</th><th>Patient</th><th>Age/Sex</th><th>Exam</th><th>AI findings</th><th>Priority reason</th><th>Status</th></tr></thead>
+        <tbody id="worklistBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- IMPORT STUDY -->
+  <div class="view" id="view-import">
+    <div class="wl-wrap" style="max-width:640px;">
+      <div class="page-title">Import a Real Study</div>
+      <div class="page-sub">Import an image (PNG/JPG) or a DICOM (.dcm) file. No automated region-of-interest
+        detection runs on imported studies — there is no validated medical-imaging model in this prototype.
+        You'll get a real on-device, general-purpose image description (not a clinical finding), and full
+        manual review tools: your own annotations, your own impression, and sign-off.</div>
+
+      <div class="card">
+        <div class="card-title">Current study image</div>
+        <div class="upload-zone" data-doc="main" style="text-align:left;padding:14px 18px;">
+          <div class="upload-title" id="importMainLabel" data-default-label="🩻 Click or drop an image (.dcm, .png, .jpg)">🩻 Click or drop an image (.dcm, .png, .jpg)</div>
+          <div class="upload-sub">DICOM files are parsed for real metadata and pixel data on-device</div>
+          <input type="file" accept=".dcm,application/dicom,image/png,image/jpeg">
+        </div>
+        <div id="importParseStatus" style="margin-top:8px;font-size:11.5px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Study details <span style="font-weight:400;color:var(--text3);">(pre-filled from DICOM when available — review and edit)</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><label class="tb-label" style="display:block;margin-bottom:4px;">Accession</label><input id="impAccession" class="copilot-input" style="width:100%;" placeholder="ACC-XXXXX"></div>
+          <div><label class="tb-label" style="display:block;margin-bottom:4px;">Patient ID</label><input id="impPatientId" class="copilot-input" style="width:100%;" placeholder="MRN-XXXXX"></div>
+          <div><label class="tb-label" style="display:block;margin-bottom:4px;">Age</label><input id="impAge" type="number" min="0" max="130" class="copilot-input" style="width:100%;"></div>
+          <div><label class="tb-label" style="display:block;margin-bottom:4px;">Sex</label>
+            <select id="impSex" class="copilot-input" style="width:100%;">
+              <option value="M">M</option><option value="F">F</option><option value="U">Unspecified</option>
+            </select>
+          </div>
+          <div style="grid-column:1 / -1;"><label class="tb-label" style="display:block;margin-bottom:4px;">Exam type</label><input id="impExamType" class="copilot-input" style="width:100%;" placeholder="e.g. Chest X-ray"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="collapse-toggle" id="importPriorToggle">▸ + Add prior study for comparison (optional)</div>
+        <div class="collapse-body" id="importPriorBody" style="margin-top:12px;">
+          <div class="upload-zone" data-doc="prior" style="text-align:left;padding:14px 18px;margin-bottom:10px;">
+            <div class="upload-title" id="importPriorLabel" data-default-label="🩻 Click or drop the prior image">🩻 Click or drop the prior image</div>
+            <div class="upload-sub">Image or DICOM — used for side-by-side comparison only</div>
+            <input type="file" accept=".dcm,application/dicom,image/png,image/jpeg">
+          </div>
+          <label class="tb-label" style="display:block;margin-bottom:4px;">Prior study date</label>
+          <input id="impPriorDate" type="date" class="copilot-input" style="width:100%;margin-bottom:10px;">
+          <label class="tb-label" style="display:block;margin-bottom:4px;">Prior report summary</label>
+          <textarea id="impPriorSummary" class="impression-textarea" style="min-height:70px;" placeholder="Type or paste the prior report's relevant summary…"></textarea>
+        </div>
+      </div>
+
+      <button class="btn primary" id="importSubmitBtn" disabled>📥 Import Study</button>
+      <div id="importSubmitStatus" style="margin-top:10px;font-size:11.5px;"></div>
+    </div>
+  </div>
+
+  <!-- STUDY READING VIEW -->
+  <div class="view" id="view-study">
+    <div class="study-top">
+      <div style="display:flex;align-items:center;">
+        <span class="back-link" data-back="worklist">← Back to worklist</span>
+        <div class="study-info" id="studyInfoBar"></div>
+      </div>
+      <div class="proc-strip" id="procStrip"></div>
+    </div>
+    <div class="study-view">
+      <div class="viewer-pane">
+        <div class="viewer-toolbar" id="viewerToolbar"></div>
+        <div class="viewer-stage" id="viewerStage">
+          <div class="viewer-canvas" id="viewerCanvas"></div>
+        </div>
+      </div>
+      <div class="side-pane" id="sidePane"></div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="view" id="view-dashboard">
+    <div class="dash-wrap">
+      <div class="page-title">Today's Workload</div>
+      <div class="page-sub">Reading-room activity and AI pre-screening metrics for this session.</div>
+      <div class="stat-row" id="dashStats1"></div>
+      <div class="stat-row" id="dashStats2"></div>
+    </div>
+  </div>
+
+  <!-- RESPONSIBLE AI -->
+  <div class="view" id="view-responsibleai">
+    <div class="ra-wrap">
+      <div class="page-title">Responsible AI &amp; Local Processing</div>
+      <div class="page-sub">This is a clinical decision-support prototype — not an autonomous diagnostic system.</div>
+
+      <div class="card">
+        <div class="card-title">🔐 Local reading environment</div>
+        <div class="security-grid">
+          <div class="sec-row ok"><span>AI text narration</span><b>LOCAL (on-device)</b></div>
+          <div class="sec-row ok"><span>Images sent to external service</span><b>0</b></div>
+          <div class="sec-row ok"><span>External AI API calls</span><b>0</b></div>
+          <div class="sec-row ok"><span>AI model</span><b>Local (Phi Silica)</b></div>
+        </div>
+        <p style="font-size:11px;color:var(--text3);margin-top:12px;line-height:1.7;">
+          Studies are pre-screened and summarized within the local reading environment — AI-generated draft
+          impressions and comparison narration run through <code>Microsoft.Windows.AI.Text.LanguageModel</code>
+          directly on this PC. This message describes what this local build does; it does not by itself imply
+          that any particular deployment meets healthcare data-handling, security, or regulatory requirements —
+          those depend on how and where the application is actually deployed.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🤖 What is — and isn't — real AI in this demo</div>
+        <p style="font-size:11.5px;color:var(--text2);line-height:1.7;">
+          The <b style="color:var(--text)">region-of-interest boxes, confidence scores, and priority flags</b> shown
+          on each demo study are pre-authored example data, standing in for what a real medical-imaging detection
+          model would output — no image-detection model is connected in this build. The
+          <b style="color:var(--text)">AI draft impressions, prior-study comparison narration, and this page's
+          copilot answers</b> are genuinely generated live, on-device, by a local language model reasoning only
+          over that structured demo data — never inventing a diagnosis, and never sent anywhere off this device.
+        </p>
+        <div class="warn-box">
+          ⚠ This prototype does not diagnose disease. Every AI finding is labeled "possible" and "requires review."
+          No output from this application should ever be treated as a confirmed diagnosis or a finalized report
+          until a radiologist has explicitly reviewed and signed it.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📥 Imported (real) studies</div>
+        <p style="font-size:11.5px;color:var(--text2);line-height:1.7;">
+          "Import Study" accepts a real image or DICOM file. DICOM parsing (patient/study metadata, pixel data
+          rendering) is real, deterministic file parsing — the same kind of local processing this app uses for
+          the demo PDFs in its sibling apps, not AI. <b style="color:var(--text)">No automated region-of-interest
+          detection runs on imported studies</b> — this prototype has no validated medical-imaging detection
+          model to connect. You do get a real, on-device, general-purpose image caption (via a generic vision
+          model, not a radiology-specific one) clearly labeled as such, plus full manual tools: your own
+          annotations, your own impression, and sign-off.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 Auditability</div>
+        <p style="font-size:11.5px;color:var(--text2);line-height:1.7;">
+          Every study keeps an audit trail distinguishing AI actions (pre-screening, draft generation) from
+          radiologist actions (opening, accepting/rejecting/modifying findings, writing an impression, signing).
+          See the "Audit Trail" panel on any study for its full history.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

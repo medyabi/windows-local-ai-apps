@@ -1,0 +1,9 @@
+region,rep,customer,deal_value_usd,stage,close_date
+North,Aisha Rahman,Beacon Foods,18500,Closed won,2026-07-14
+North,Aisha Rahman,Cedar Logistics,7200,Closed lost,2026-08-02
+South,Diego Alvarez,Mariner Health,32000,Closed won,2026-08-19
+South,Diego Alvarez,Plum Street Cafe,2400,Negotiation,2026-10-05
+East,Hannah Weiss,Orchard Labs,54000,Closed won,2026-09-03
+East,Hannah Weiss,Willow Textiles,12600,Proposal,2026-10-21
+West,Kenji Mori,Summit Outdoor,9800,Closed won,2026-09-12
+West,Kenji Mori,Delta Print,15400,Negotiation,2026-10-11

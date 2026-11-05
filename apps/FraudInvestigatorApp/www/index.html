@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Local Fraud Investigator — On-Device AI</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0a0b0e;--bg2:#101216;--bg3:#161920;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#e8eaed;--text2:#8b909c;--text3:#52565f;
+  --accent:#f87171;--accent2:#ef4444;--accent-dim:rgba(248,113,113,0.12);--accent-dim2:rgba(248,113,113,0.06);
+  --green:#4ade80;--green-dim:rgba(74,222,128,0.12);
+  --blue:#60a5fa;--blue-dim:rgba(96,165,250,0.12);
+  --amber:#fbbf24;--amber-dim:rgba(251,191,36,0.12);
+  --violet:#a78bfa;--violet-dim:rgba(167,139,250,0.12);
+  --mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;
+  --r:10px;--r2:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{font-size:14px;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;display:flex;flex-direction:column;}
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:2px;}
+
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:52px;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0;z-index:200;}
+.nav-brand{display:flex;align-items:center;gap:10px;}
+.nav-logo{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.nav-title{font-size:15px;font-weight:500;letter-spacing:-0.02em;}
+.nav-title span{color:var(--accent);}
+.nav-pills{display:flex;gap:6px;align-items:center;}
+.pill{font-size:11px;font-family:var(--mono);padding:3px 9px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);background:var(--bg2);}
+.pill.local{border-color:rgba(74,222,128,0.35);color:var(--green);background:var(--green-dim);display:flex;align-items:center;gap:5px;}
+.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);}
+.proveit-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;font-size:11px;font-family:var(--mono);color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.proveit-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+.app{flex:1;display:grid;grid-template-columns:180px 1fr 340px;min-height:0;}
+
+/* ── LEFT NAV ── */
+.leftnav{border-right:1px solid var(--border);padding:16px 10px;display:flex;flex-direction:column;gap:2px;background:var(--bg2);}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:7px;font-size:12.5px;color:var(--text2);cursor:pointer;transition:all 0.15s;}
+.nav-item:hover{background:var(--bg3);color:var(--text);}
+.nav-item.active{background:var(--accent-dim);color:var(--accent);}
+.nav-sep{height:1px;background:var(--border);margin:10px 4px;}
+.nav-mini-status{margin-top:auto;padding:10px;background:var(--bg3);border-radius:8px;font-size:10.5px;color:var(--text2);line-height:1.7;}
+.nav-mini-status .sdot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;}
+
+/* ── MAIN ── */
+main{overflow-y:auto;padding:22px 26px;}
+.view{display:none;}
+.view.active{display:block;animation:fadeIn 0.25s ease;}
+.sh{font-size:10px;font-family:var(--mono);letter-spacing:0.1em;color:var(--text3);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.sh::after{content:'';flex:1;height:1px;background:var(--border);}
+.page-title{font-size:18px;font-weight:500;margin-bottom:4px;}
+.page-sub{font-size:12px;color:var(--text2);margin-bottom:18px;}
+
+/* stat row */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;}
+.stat-v{font-family:var(--mono);font-size:24px;font-weight:500;color:var(--text);}
+.stat-l{font-size:10.5px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-top:3px;}
+.stat-card.alert .stat-v{color:var(--accent);}
+
+/* upload */
+.upload-row{display:flex;gap:10px;margin-bottom:22px;align-items:stretch;}
+.upload-zone{flex:1;border:1px dashed var(--border2);border-radius:var(--r);background:var(--bg2);padding:20px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:var(--accent-dim2);}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.upload-title{font-size:13px;font-weight:500;margin-bottom:3px;}
+.upload-sub{font-size:11px;color:var(--text2);}
+.demo-btn{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:0 22px;font-size:12px;font-family:var(--mono);color:var(--text2);cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.demo-btn:hover{border-color:var(--green);color:var(--green);}
+
+/* NL query */
+.nlq-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:22px;}
+.nlq-row{display:flex;gap:8px;}
+.nlq-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:9px 12px;font-size:12.5px;color:var(--text);font-family:var(--sans);}
+.nlq-input:focus{outline:none;border-color:var(--accent);}
+.nlq-input::placeholder{color:var(--text3);}
+.nlq-btn{background:var(--accent);color:#000;border:none;border-radius:7px;padding:0 16px;font-size:12px;font-weight:500;cursor:pointer;}
+.nlq-btn:disabled{opacity:0.4;cursor:not-allowed;}
+.nlq-examples{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.nlq-chip{font-size:10.5px;font-family:var(--mono);background:var(--bg3);border:1px solid var(--border2);color:var(--text2);border-radius:14px;padding:4px 10px;cursor:pointer;transition:all 0.15s;}
+.nlq-chip:hover{border-color:var(--accent);color:var(--accent);}
+.nlq-result{margin-top:12px;display:none;}
+.nlq-result.visible{display:block;animation:fadeIn 0.2s ease;}
+.nlq-summary{font-size:12.5px;color:var(--text);margin-bottom:8px;}
+
+/* tables */
+.data-table{width:100%;border-collapse:collapse;font-size:12px;}
+.data-table th{text-align:left;font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;padding:8px 10px;border-bottom:1px solid var(--border2);}
+.data-table td{padding:9px 10px;border-bottom:1px solid var(--border);}
+.data-table tr.clickable{cursor:pointer;transition:background 0.15s;}
+.data-table tr.clickable:hover{background:var(--bg2);}
+.risk-badge{font-family:var(--mono);font-size:11px;font-weight:500;padding:2px 8px;border-radius:10px;}
+.risk-high{background:var(--accent-dim);color:var(--accent);}
+.risk-med{background:var(--amber-dim);color:var(--amber);}
+.risk-low{background:var(--green-dim);color:var(--green);}
+.empty-note{font-size:12px;color:var(--text3);padding:16px 0;text-align:center;}
+
+/* customer detail */
+.back-link{font-size:11px;color:var(--text2);cursor:pointer;margin-bottom:14px;display:inline-flex;align-items:center;gap:5px;}
+.back-link:hover{color:var(--accent);}
+.cust-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.cust-id{font-size:20px;font-weight:500;font-family:var(--mono);}
+.cust-actions{display:flex;gap:8px;}
+.btn{padding:8px 16px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);transition:all 0.15s;}
+.btn:hover{border-color:var(--text);color:var(--text);}
+.btn.primary{background:var(--accent);color:#000;border-color:var(--accent);}
+.btn.primary:hover{background:var(--accent2);}
+.btn:disabled{opacity:0.4;cursor:not-allowed;}
+
+.risk-score-box{display:flex;align-items:center;gap:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px;margin-bottom:18px;}
+.risk-score-num{font-family:var(--mono);font-size:34px;font-weight:500;}
+.risk-score-num.high{color:var(--accent);}
+.risk-score-num.med{color:var(--amber);}
+.risk-score-num.low{color:var(--green);}
+.risk-score-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;}
+.risk-factors{flex:1;display:flex;flex-direction:column;gap:6px;}
+.rf-row{display:flex;align-items:center;gap:10px;font-size:11.5px;}
+.rf-label{width:190px;flex-shrink:0;color:var(--text2);}
+.rf-bar-track{flex:1;height:7px;background:var(--bg3);border-radius:4px;overflow:hidden;}
+.rf-bar-fill{height:100%;background:var(--accent);border-radius:4px;}
+
+.evidence-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+.evidence-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;border-left:3px solid var(--accent);}
+.ev-title{font-size:12.5px;font-weight:500;margin-bottom:6px;}
+.ev-detail{font-family:var(--mono);font-size:11px;color:var(--text2);line-height:1.7;white-space:pre-wrap;}
+
+.assessment-box{font-size:13px;color:var(--text);line-height:1.7;margin-bottom:20px;padding:14px 16px;background:var(--bg2);border-radius:var(--r);border:1px solid var(--border);}
+
+/* transaction graph */
+.graph-box{background:radial-gradient(ellipse 80% 100% at 50% 0%, rgba(248,113,113,0.05), transparent 60%), var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:22px 18px;margin-bottom:20px;overflow-x:auto;position:relative;}
+.graph-legend{display:flex;gap:16px;margin-bottom:14px;font-size:10.5px;color:var(--text2);font-family:var(--mono);}
+.graph-legend span{display:inline-flex;align-items:center;gap:5px;}
+.graph-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+.graph-svg-wrap{min-width:100%;display:flex;justify-content:center;}
+.gnode{cursor:pointer;}
+.gnode .node-card{fill:url(#nodeGrad);stroke:var(--border2);stroke-width:1.3;transition:filter 0.2s, stroke 0.2s;}
+.gnode:hover .node-card{stroke:var(--accent);}
+.gnode.origin .node-card{fill:url(#originGrad);stroke:rgba(96,165,250,0.5);}
+.gnode.flagged .node-card{stroke:var(--accent);stroke-width:1.6;}
+.gnode .node-icon-bg{fill:var(--bg);opacity:0.5;}
+.gnode .node-title{fill:var(--text);font-family:var(--mono);font-size:11.5px;font-weight:700;}
+.gnode .node-sub{fill:var(--text2);font-family:var(--mono);font-size:9px;text-transform:uppercase;letter-spacing:0.04em;}
+.gnode .node-country{fill:var(--violet);font-family:var(--mono);font-size:9px;}
+.gnode .node-role{fill:var(--text3);font-family:var(--mono);font-size:8.5px;text-transform:uppercase;letter-spacing:0.06em;}
+.halo{animation:haloPulse 2.2s ease-in-out infinite;transform-origin:center;}
+@keyframes haloPulse{0%,100%{opacity:0.55;transform:scale(1);}50%{opacity:0.12;transform:scale(1.28);}}
+.flow-pulse{filter:drop-shadow(0 0 3px var(--accent));}
+.edge-path{fill:none;stroke-linecap:round;}
+.edge-amount-pill rect{fill:var(--bg);stroke:var(--border2);stroke-width:1;}
+.edge-amount-pill text{font-family:var(--mono);font-weight:600;}
+.edge-time-label{fill:var(--text3);font-family:var(--mono);font-size:8.5px;}
+.gedge-label{fill:var(--text2);font-family:var(--mono);font-size:10px;}
+.account-detail-box{margin-top:12px;background:var(--bg3);border-radius:8px;padding:12px 14px;font-size:12px;display:none;}
+.account-detail-box.visible{display:block;}
+.account-detail-box .adk{color:var(--text3);font-family:var(--mono);font-size:10px;text-transform:uppercase;}
+.account-detail-box .adv{color:var(--text);margin-bottom:8px;}
+
+/* report */
+.report-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-top:16px;display:none;white-space:pre-wrap;font-size:12.5px;line-height:1.75;}
+.report-box.visible{display:block;animation:fadeIn 0.2s ease;}
+.report-box h3{font-size:11px;font-family:var(--mono);color:var(--accent);text-transform:uppercase;letter-spacing:0.08em;margin:14px 0 6px;}
+.report-box h3:first-child{margin-top:0;}
+
+/* case card */
+.case-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;cursor:pointer;}
+.case-card:hover{border-color:var(--border2);}
+.case-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.case-id{font-family:var(--mono);font-size:12px;color:var(--text2);}
+.case-status{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;background:var(--amber-dim);color:var(--amber);}
+.case-status.closed{background:var(--green-dim);color:var(--green);}
+.case-meta{font-size:11.5px;color:var(--text2);display:flex;gap:14px;}
+.case-detail-panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-top:16px;}
+.case-notes{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px 12px;font-size:12.5px;color:var(--text);font-family:var(--sans);min-height:80px;resize:vertical;margin-top:8px;}
+.case-notes:focus{outline:none;border-color:var(--accent);}
+.case-status-select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;font-family:var(--mono);color:var(--text);margin-top:8px;}
+
+/* policy library */
+.policy-doc-row{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;margin-bottom:8px;}
+.policy-doc-icon{width:30px;height:30px;border-radius:7px;background:var(--violet-dim);color:var(--violet);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.policy-doc-name{flex:1;font-size:12.5px;font-weight:500;}
+.policy-doc-status{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;}
+.policy-doc-status.ok{background:var(--green-dim);color:var(--green);}
+.policy-doc-status.busy{background:var(--amber-dim);color:var(--amber);}
+
+/* ── RIGHT: INVESTIGATION COPILOT ── */
+.copilot{border-left:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;min-height:0;}
+.copilot-header{padding:14px 16px;border-bottom:1px solid var(--border);}
+.copilot-title{font-size:13px;font-weight:500;display:flex;align-items:center;gap:7px;}
+.copilot-context{font-size:10.5px;color:var(--text2);margin-top:4px;font-family:var(--mono);}
+.copilot-messages{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+.copilot-empty{font-size:12px;color:var(--text3);line-height:1.6;}
+.chat-msg{display:flex;flex-direction:column;gap:3px;max-width:96%;}
+.chat-msg.user{align-self:flex-end;align-items:flex-end;}
+.chat-msg.assistant{align-self:flex-start;align-items:flex-start;}
+.chat-bubble{font-size:12px;line-height:1.6;padding:9px 12px;border-radius:10px;white-space:pre-wrap;}
+.chat-msg.user .chat-bubble{background:var(--accent-dim);color:var(--text);border:1px solid rgba(248,113,113,0.25);}
+.chat-msg.assistant .chat-bubble{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
+.chat-msg.assistant.thinking .chat-bubble{color:var(--text2);font-style:italic;}
+.chat-msg.error .chat-bubble{background:rgba(248,113,113,0.1);color:var(--accent);}
+.chat-cite{font-size:10px;color:var(--violet);font-family:var(--mono);margin-top:2px;}
+.copilot-input-row{display:flex;gap:8px;padding:12px 14px;border-top:1px solid var(--border);}
+.copilot-input{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--text);font-family:var(--sans);resize:none;min-height:20px;max-height:80px;}
+.copilot-input:focus{outline:none;border-color:var(--accent);}
+.copilot-input::placeholder{color:var(--text3);}
+.copilot-send{background:var(--accent);color:#000;border:none;border-radius:6px;padding:0 13px;font-size:12px;font-weight:500;cursor:pointer;}
+.copilot-send:disabled{opacity:0.4;cursor:not-allowed;}
+
+/* modal (prove-it) */
+.modal-bg{position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.show{display:flex;}
+.modal-inner{background:var(--bg2);border:1px solid var(--accent);border-radius:14px;max-width:460px;width:100%;overflow:hidden;box-shadow:0 0 60px rgba(248,113,113,0.15);}
+.modal-header{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:500;}
+.modal-close{background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;}
+.modal-body{padding:20px 22px;}
+.proof-row{display:flex;align-items:center;justify-content:space-between;padding:7px 0;font-size:13px;border-bottom:1px solid var(--border);}
+.proof-row:last-child{border-bottom:none;}
+.proof-check{color:var(--green);font-family:var(--mono);margin-right:8px;}
+.proof-label{flex:1;}
+.proof-badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:10px;background:var(--green-dim);color:var(--green);}
+.proof-divider{height:1px;background:var(--border2);margin:12px 0;}
+.proof-stat{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;color:var(--text2);}
+.proof-stat b{color:var(--text);font-family:var(--mono);}
+.proof-stat.zero b{color:var(--green);}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.spin{animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">
+    <div class="nav-logo">🛡</div>
+    <span class="nav-title">Local Fraud <span>Investigator</span></span>
+  </div>
+  <div class="nav-pills">
+    <span class="pill local"><span class="pill-dot"></span>LOCAL AI — data stays on this device</span>
+    <button class="proveit-btn" onclick="openProveIt()">Prove it →</button>
+  </div>
+</nav>
+
+<div class="app">
+
+<!-- ══ LEFT NAV ══ -->
+<div class="leftnav">
+  <div class="nav-item active" data-view="dashboard" onclick="showView('dashboard')">📊 Dashboard</div>
+  <div class="nav-item" data-view="cases" onclick="showView('cases')">🗂 Cases</div>
+  <div class="nav-item" data-view="policy" onclick="showView('policy')">📚 Policy Library</div>
+  <div class="nav-sep"></div>
+  <div class="nav-mini-status">
+    <div><span class="sdot" id="miniDot" style="background:var(--text3);"></span><span id="miniText">Checking model...</span></div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<main>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="view active" id="view-dashboard">
+    <div class="page-title">Dashboard</div>
+    <div class="page-sub">Import a transaction dataset to begin investigating.</div>
+
+    <div class="upload-row">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".csv" onchange="handleTxnFile(this.files[0])">
+        <div class="upload-title">Drop a transactions CSV here</div>
+        <div class="upload-sub">transaction_id, customer_id, timestamp, amount, currency, type, sender_account, receiver_account, receiver_name, receiver_bic, country, purpose, merchant, channel</div>
+      </div>
+      <div class="upload-zone" id="profileUploadZone">
+        <input type="file" id="profileFileInput" accept=".csv" onchange="handleProfileFile(this.files[0])">
+        <div class="upload-title">Drop a customer profiles CSV here</div>
+        <div class="upload-sub">customer_id, name, occupation, expected_monthly_volume, risk_rating, pep_status (optional — enables the declared-vs-actual-volume check)</div>
+      </div>
+      <button class="demo-btn" onclick="loadDemoDataset()">▶ Load demo dataset</button>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="stat-v" id="statCustomers">0</div><div class="stat-l">Customers</div></div>
+      <div class="stat-card"><div class="stat-v" id="statTxns">0</div><div class="stat-l">Transactions</div></div>
+      <div class="stat-card alert"><div class="stat-v" id="statAlerts">0</div><div class="stat-l">Alerts</div></div>
+      <div class="stat-card"><div class="stat-v" id="statCases">0</div><div class="stat-l">Cases</div></div>
+    </div>
+
+    <div class="nlq-box">
+      <div class="sh" style="margin-bottom:8px;">Natural-language investigation</div>
+      <div class="nlq-row">
+        <input class="nlq-input" id="nlqInput" placeholder="e.g. Find transactions above €10,000 involving newly created beneficiaries" onkeydown="if(event.key==='Enter')runNLQuery()">
+        <button class="nlq-btn" id="nlqBtn" onclick="runNLQuery()">Search</button>
+      </div>
+      <div class="nlq-examples">
+        <span class="nlq-chip" onclick="setNLQ('Find transactions above €10,000 involving newly created beneficiaries.')">Large + new beneficiary</span>
+        <span class="nlq-chip" onclick="setNLQ('Find accounts receiving money from more than five unrelated customers.')">Fan-in / mule accounts</span>
+        <span class="nlq-chip" onclick="setNLQ('Find transactions occurring within 30 minutes of a large incoming payment.')">Rapid follow-on transfers</span>
+        <span class="nlq-chip" onclick="setNLQ('Show customers whose current activity differs significantly from their history.')">Behavior deviation</span>
+      </div>
+      <div class="nlq-result" id="nlqResult">
+        <div class="nlq-summary" id="nlqSummary"></div>
+        <table class="data-table" id="nlqTable"></table>
+      </div>
+    </div>
+
+    <div class="sh">⚠ High-risk activity</div>
+    <table class="data-table" id="highRiskTable">
+      <thead><tr><th>Customer</th><th>Risk</th><th>Top alert</th><th>Amount</th></tr></thead>
+      <tbody id="highRiskBody"><tr><td colspan="4" class="empty-note">No dataset loaded yet.</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- ── CUSTOMER DETAIL ── -->
+  <div class="view" id="view-customer">
+    <div class="back-link" onclick="showView('dashboard')">← Back to dashboard</div>
+    <div class="cust-header">
+      <div>
+        <div class="cust-id" id="custDetailId">—</div>
+        <div class="page-sub" id="custDetailSub" style="margin-bottom:0;">—</div>
+      </div>
+      <div class="cust-actions">
+        <button class="btn" onclick="generateReport()" id="btnReport">Generate Investigation Report</button>
+        <button class="btn primary" onclick="createCase()" id="btnCase">Create Case</button>
+      </div>
+    </div>
+
+    <div class="risk-score-box">
+      <div>
+        <div class="risk-score-num" id="riskScoreNum">0</div>
+        <div class="risk-score-label">Risk / 100</div>
+      </div>
+      <div class="risk-factors" id="riskFactors"></div>
+    </div>
+
+    <div class="sh">AI explanation — on-device, evidence-grounded</div>
+    <div class="assessment-box" id="custAssessment">—</div>
+
+    <div class="sh">Evidence</div>
+    <div class="evidence-list" id="evidenceList"></div>
+
+    <div class="sh">Transaction chain</div>
+    <div class="graph-box">
+      <div class="graph-legend">
+        <span><span class="dot" style="background:var(--blue);"></span>Origin (this customer)</span>
+        <span><span class="dot" style="background:var(--accent);"></span>Flagged hop</span>
+        <span>↝ animated dot = direction &amp; sequence of fund movement</span>
+      </div>
+      <div class="graph-svg-wrap" id="graphWrap"></div>
+      <div class="account-detail-box" id="accountDetailBox"></div>
+    </div>
+
+    <div class="report-box" id="reportBox"></div>
+  </div>
+
+  <!-- ── CASES ── -->
+  <div class="view" id="view-cases">
+    <div class="page-title">Cases</div>
+    <div class="page-sub">Cases created from flagged customers.</div>
+    <div id="casesList"><div class="empty-note">No cases created yet — open a high-risk customer and click "Create Case".</div></div>
+    <div class="case-detail-panel" id="caseDetailPanel" style="display:none;"></div>
+  </div>
+
+  <!-- ── POLICY LIBRARY ── -->
+  <div class="view" id="view-policy">
+    <div class="page-title">Policy Library</div>
+    <div class="page-sub">Upload internal AML/KYC/fraud policy PDFs. They're indexed on-device (semantic search) so Investigation Copilot can cite them — never uploaded anywhere.</div>
+    <div class="upload-row">
+      <div class="upload-zone" id="policyUploadZone">
+        <input type="file" id="policyFileInput" accept=".pdf" multiple onchange="handlePolicyFiles(this.files)">
+        <div class="upload-title">Drop policy PDFs here</div>
+        <div class="upload-sub">AML policy, KYC policy, transaction monitoring procedures, fraud handbook...</div>
+      </div>
+      <button class="demo-btn" onclick="loadDemoPolicies()">▶ Load demo policies</button>
+    </div>
+    <div class="sh">Indexed documents</div>
+    <div id="policyDocList"><div class="empty-note">No policy documents indexed yet.</div></div>
+  </div>
+
+</main>
+
+<!-- ══ RIGHT: INVESTIGATION COPILOT ══ -->
+<div class="copilot">
+  <div class="copilot-header">
+    <div class="copilot-title">🔎 Investigation Copilot</div>
+    <div class="copilot-context" id="copilotContext">No customer selected</div>
+  </div>
+  <div class="copilot-messages" id="copilotMessages">
+    <div class="copilot-empty">Open a customer to ask questions grounded in their evidence, or ask a general question here. Policy documents are searched automatically when relevant.</div>
+  </div>
+  <div class="copilot-input-row">
+    <textarea class="copilot-input" id="copilotInput" rows="1" placeholder="Ask the investigation copilot..." onkeydown="handleCopilotKey(event)"></textarea>
+    <button class="copilot-send" id="copilotSend" onclick="sendCopilotMessage()">Ask</button>
+  </div>
+</div>
+
+</div>
+
+<!-- ══ PROVE IT MODAL ══ -->
+<div class="modal-bg" id="proveModal" onclick="closeProveIt(event)">
+  <div class="modal-inner" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">🟢 AI Processing — Proof</div>
+      <button class="modal-close" onclick="document.getElementById('proveModal').classList.remove('show')">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">Transaction ingestion</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">Detection engine (rules + statistics)</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">Risk scoring</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">Policy semantic search</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-row"><span class="proof-check">✓</span><span class="proof-label">AI reasoning / reports</span><span class="proof-badge">LOCAL</span></div>
+      <div class="proof-divider"></div>
+      <div class="proof-stat"><span>Internet connection</span><b>NOT REQUIRED</b></div>
+      <div class="proof-stat zero"><span>External AI API calls</span><b>0</b></div>
+      <div class="proof-stat zero"><span>Customer data uploaded</span><b>0 bytes</b></div>
+      <div class="proof-stat"><span>Transactions analyzed locally</span><b id="proveTxnCount">0</b></div>
+      <div class="proof-stat"><span>Policy chunks indexed locally</span><b id="provePolicyCount">0</b></div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
