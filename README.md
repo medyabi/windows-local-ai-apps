@@ -31,7 +31,7 @@ The design rule behind most of them:
 
 > **Code computes the facts, the model words them.** Totals, ratios, dates and verification matrices come from deterministic code (visible in Finance, Fraud, POE Verification); LocalIQ additionally checks the answer's numbers and citations against the retrieved text. The on-device model writes the explanation. Each app README says what is and is not checked.
 
-Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Details: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). To build a new app the same way, follow [`docs/BUILD-YOUR-OWN-APP.md`](docs/BUILD-YOUR-OWN-APP.md).
 
 ## Catalogue
 
@@ -124,6 +124,7 @@ windows-local-ai-apps/
 │   ├── DEPLOYMENT.md      step-by-step deployment guide + troubleshooting
 │   ├── ARCHITECTURE.md    shell, bridge, shared files
 │   ├── BUILD.md           build internals, developer loop
+│   ├── BUILD-YOUR-OWN-APP.md  playbook to create a new on-device AI app the same way
 │   └── WINDOWS-AI-LESSONS.md  things measured the hard way
 └── apps/
     └── <App>/
