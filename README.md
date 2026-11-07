@@ -86,6 +86,106 @@ Then start the app from the Start menu. The full guide (checks, certificates, fi
 
 No binaries are published here on purpose: you build with your own certificate, so nobody has to trust someone else's.
 
+## Build your own local AI app
+
+You have an idea for a new app? Install the **`windows-ondevice-ai-app` skill** once, describe the idea to Claude Code, and it builds the app the same way as the eleven above: it picks the Windows AI components the idea needs (Phi Silica, OCR, image description, local search, summarize / rewrite / table, image generation), writes the UI and logic, tests it on the NPU, and packages a signed installer.
+
+```mermaid
+flowchart LR
+  A["1. Download<br/>git clone"] --> B["2. Install the skill<br/>copy 1 folder"]
+  B --> C["3. Open Claude Code<br/>describe your idea"]
+  C --> D["4. Claude scaffolds,<br/>builds and tests on the NPU"]
+  D --> E["5. Try it<br/>dev-register.ps1"]
+  E --> F["6. build-app.ps1<br/>install zip"]
+  F --> G["7. Install on a<br/>Copilot+ PC (admin)"]
+```
+
+### What you need
+
+| | |
+|---|---|
+| PC | Windows 11 24H2 or newer, x64. A **Copilot+ PC** to run the AI features (building works on any Windows 11 PC) |
+| Tools | [Claude Code](https://claude.com/claude-code), Git, and the .NET 8 SDK or newer. No Visual Studio |
+| Network | First use only: NuGet restore, and Windows downloads the on-device models once |
+| Access | This repository is private: ask the owner to add your GitHub account, or ask for the skill zip instead |
+
+### Step 1. Download
+
+```powershell
+winget install --id Microsoft.DotNet.SDK.8
+winget install --id Git.Git
+git clone https://github.com/medyabi/windows-local-ai-apps.git
+```
+
+### Step 2. Install the skill (once per PC)
+
+```powershell
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\skills" | Out-Null
+Copy-Item .\windows-local-ai-apps\.claude\skills\windows-ondevice-ai-app "$env:USERPROFILE\.claude\skills\" -Recurse -Force
+```
+
+Check that `%USERPROFILE%\.claude\skills\windows-ondevice-ai-app\SKILL.md` exists. With a zip instead of the repo, unzip it so that the folder `windows-ondevice-ai-app` lands in `%USERPROFILE%\.claude\skills\`. If you work inside a clone of this repository, you can skip the copy: Claude Code reads `.claude\skills\` from the project.
+
+### Step 3. Describe your idea to Claude Code
+
+Start a **new** session (skills are read at start-up) in the folder where projects should live:
+
+```powershell
+mkdir C:\src ; cd C:\src ; claude
+```
+
+Then write the idea: who uses the app, what goes in, what must come out, what may leave the PC. For example:
+
+> Create a Windows on-device AI app that checks supplier invoices (PDF or photo) against purchase orders and explains the differences. Nothing may leave the PC.
+
+If Claude does not pick the skill up by itself, start with "Use the windows-ondevice-ai-app skill to ...".
+
+### Step 4. Let Claude build it
+
+Claude restates the idea as a short brief, chooses the components, scaffolds the project, replaces the demo screens with the app's own, runs the built-in self-test on the real NPU, and reports what was and was not tested. You confirm the brief and review the screens; ask for changes in the same session ("also read scanned PDFs", "shorter explanations").
+
+| The app needs to... | Component |
+|---|---|
+| answer, explain, draft, chat | `language` (Phi Silica) |
+| summarize, rewrite in a tone, text to table | `textskills` |
+| read photos, receipts, whiteboards, scanned PDFs | `ocr` |
+| read PDFs that have a text layer | `pdf` |
+| describe a picture | `vision` |
+| search the user's own documents | `index` |
+| generate, upscale, cut out pictures | `images` |
+
+### Step 5. Try it
+
+Claude starts the app for you. To start it again:
+
+```powershell
+cd C:\src\<YourApp>
+.\scripts\dev-register.ps1
+```
+
+The first launch downloads the models: wait for the status line to say "ready". If an operation returns nothing, read `bridge.log` in the app's `LocalState` folder (operation names, sizes and statuses, never content).
+
+### Step 6. Package it
+
+```powershell
+.\scripts\build-app.ps1        # -> dist\<YourApp>-x64-install.zip
+```
+
+### Step 7. Deploy on another Copilot+ PC
+
+Unzip `<YourApp>-x64-install.zip`, then right-click `Install-<YourApp>.ps1` and choose *Run with PowerShell as administrator*. It trusts the app's self-signed certificate once, then installs the MSIX. Start the app from the Start menu. To ship an update, raise `Version` in `Package.appxmanifest` and rebuild: the app upgrades in place and keeps its data.
+
+### Without Claude
+
+The scripts work on their own: `new-app.ps1 -Name InvoiceChecker -Display "Invoice Checker" -Components language,pdf,ocr -Destination C:\src` (run from the skill's `scripts` folder), then `dev-register.ps1` and `build-app.ps1` in the new project.
+
+### More
+
+- Full guide with troubleshooting and what was verified: [`docs/USE-THE-SKILL.md`](docs/USE-THE-SKILL.md)
+- Which component for which need, with measured limits: [`reference/components.md`](.claude/skills/windows-ondevice-ai-app/reference/components.md)
+- The design and prompt rules behind the apps: [`docs/BUILD-YOUR-OWN-APP.md`](docs/BUILD-YOUR-OWN-APP.md)
+- Not verified yet: installing a generated app on a clean second PC, ARM64, SDK versions other than `2.2.2-experimental9`.
+
 ## Requirements
 
 | | |
