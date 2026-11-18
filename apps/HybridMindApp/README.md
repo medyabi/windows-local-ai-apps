@@ -2,6 +2,8 @@
 
 [LocalMind](../LocalMindApp) plus a **router** and an **agent mode**: the on-device Windows AI model (Phi Silica) answers first, and **your own cloud model** (Azure OpenAI or any OpenAI-compatible endpoint) is used only when the task needs it, always visibly and with a way to say no.
 
+![HybridMind: the app on a Copilot+ PC](../../docs/screenshots/HybridMindApp.png)
+
 > **Tested against a mock server only**, never against a real cloud service. Treat the cloud routing and the cloud agent as unproven until you try them with your own endpoint.
 
 ## How it works
