@@ -23,6 +23,8 @@ Things that were measured while building these apps (Phi Silica through `Microso
 - Indexing is **asynchronous**: query right after adding content and you get nothing. Poll or retry with a delay.
 - Matching is **fuzzy**, not exact: confirm hits on the client side (e.g. by checking the text really contains the quoted terms).
 - Calling it directly from a WebView2 message handler can **deadlock the UI thread**: run it with `Task.Run`.
+- **Passage retrieval cannot list table rows.** A price list or SKU table is hundreds of near-identical rows. The word the user types ("SKU") is often only in the table *header*, the rows that answer "list the Datacenter SKUs" are spread over many passages, and the model's small context holds only a handful of passages, so it gets prose and the wrong pages and refuses. When the question asks for codes, scan the rows in code instead (every row that mentions all the words the user named, with the words found in nearly every row used only to rank) and give the model that one compact list; see `apps/LocalMindApp/RowLookup.cs`. Say how many rows were not shown rather than implying the list is complete.
+- Price lists abbreviate ("DataCtr", "STD or DC"): a word that is missing from your matches may be printed differently in the rows. Check the raw extracted text, not only the PDF.
 
 ## Debugging this stack
 

@@ -90,7 +90,7 @@ Either re-run the script with `-Install` (from an elevated PowerShell if step 5 
 or install the file you already built:
 
 ```powershell
-Add-AppxPackage -Path .\dist\LocalMindApp\LocalMindApp_1.2.0.0_x64.msix
+Add-AppxPackage -Path .\dist\LocalMindApp\LocalMindApp_1.2.1.0_x64.msix
 ```
 
 (The file name contains the app's version; use `dir dist\LocalMindApp`.)

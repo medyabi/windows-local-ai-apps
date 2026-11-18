@@ -221,6 +221,8 @@ windows-local-ai-apps/
 ├── .claude/skills/windows-ondevice-ai-app/   Claude Code skill: idea -> complete on-device AI app
 ├── scripts/
 │   └── build-app.ps1      build (and optionally install) any app with your own certificate
+├── tests/
+│   └── LocalMind.RowLookup.Tests/   unit tests (synthetic data) for LocalMind's SKU / part-number row lookup
 ├── docs/
 │   ├── DEPLOYMENT.md      step-by-step deployment guide + troubleshooting
 │   ├── ARCHITECTURE.md    shell, bridge, shared files

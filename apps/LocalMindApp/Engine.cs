@@ -550,6 +550,33 @@ internal sealed class SpecEngine
         return result;
     }
 
+    // ── part-number / SKU row lookup (deterministic, see RowLookup.cs) ───────
+    // Returns one synthetic excerpt holding the table rows that match what the question names, or null when the question
+    // is not asking for codes (or no row matches). Rows are matched in code over every passage of the files in scope.
+    internal Hit? FindRows(string question, string? previousQuestion, ISet<string>? scope, int maxChars)
+    {
+        List<RowChunk> list;
+        lock (_lock)
+        {
+            list = new List<RowChunk>();
+            foreach (var kv in _docChunks)
+            {
+                if (scope != null && !scope.Contains(kv.Key)) continue;
+                var name = _docs.TryGetValue(kv.Key, out var di) ? di.Name : Path.GetFileName(kv.Key);
+                foreach (var id in kv.Value)
+                    if (_chunks.TryGetValue(id, out var c)) list.Add(new RowChunk(c.DocPath, name, c.Loc, c.Text));
+            }
+        }
+        var r = RowLookup.Find(list, question, previousQuestion, maxChars);
+        if (r == null) return null;
+        _log($"Row lookup: {r.Lines.Count} of {r.Total} rows, {r.Terms.Count} terms");
+        return new Hit
+        {
+            Id = "rows", DocPath = r.DocPath, DocName = r.DocName, Loc = r.Loc + " · matching rows", Text = RowLookup.ToText(r),
+            Score = 999, ViaKeyword = true,
+        };
+    }
+
     // ── key lines (deterministic) ──────────────────────────────────────────
     // For each retrieved passage, pick the 1–2 lines that best match the question (idf-weighted term overlap).
     // They're shown to the user and marked for the model, so the exact spec row stands out even in a long passage.

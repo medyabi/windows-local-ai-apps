@@ -21,12 +21,27 @@ flowchart LR
 - **Tools run as plain code** in the page (`tools.js`: calculator without `eval`, unit conversion, date arithmetic, memory commands); their results are given to the model as exact facts.
 - **Skills** are folders with a `SKILL.md` (name, description, instructions); they only add instructions to a prompt, nothing in them is executed.
 
+## What's new in 1.2.1: asking for SKUs and part numbers
+
+Asking "list the Datacenter SKUs" over a price list used to fail: the rows are spread across many near-identical passages, the word "SKU" appears only in the table *headers* (not in the rows), and the model's context holds only a handful of passages, so it received prose and the wrong pages and answered "I cannot assist you".
+
+Now, when a question asks for SKUs, part numbers or codes, the app **scans every row of the selected files in code**, keeps the rows that mention everything you named (for example *Datacenter* and *ROK*), and gives them to the model as one compact, exact first excerpt:
+
+- Words found in nearly every row ("Windows Server 2025") only rank rows; the words you named select them. If no row matches them all, it relaxes one word at a time.
+- A broad question (for example only "Windows Server 2025 SKU") shows the first rows and says how many more exist, so it never pretends to be complete.
+- A short follow-up such as "and for Standard?" keeps the intent but takes its own subject.
+- Questions that are not about codes use the normal retrieval path, unchanged.
+- Part numbers come from the document's text, copied exactly; the model is told never to invent or alter one. The Sources panel shows the matched rows whatever the model writes.
+
+Limits: it needs a text layer or OCR text with codes that look like part numbers (letters and digits joined by hyphens, for example `AB1-0001`); a price list that prints an abbreviation (for example "DataCtr") is matched only for the aliases built in (`RowLookup.Alias`).
+
 ## Source files
 
 | File | What it contains |
 |---|---|
 | `ChatEngine.cs`, `ChatModels.cs` | Chat turn: prompt fitting, retrieval from attached files, streaming events, reply clean-up, Windows text skills (summarise / rewrite / text-to-table), background jobs. |
 | `Engine.cs`, `Extraction.cs`, `Ocr.cs` | File knowledge: library, extraction of many formats, chunking, local index (`AppContentIndexer`), OCR. Same design as LocalIQ. |
+| `RowLookup.cs` | Deterministic **part-number / SKU row lookup** (see "What's new" below): finds the table rows that match what the question names, in code, with no model involved. No Windows dependencies, so it is unit-tested on its own (`tests/LocalMind.RowLookup.Tests`). |
 | `ImageEngine.cs` | Windows AI `ImageGenerator`, `ImageScaler`, `ImageForegroundExtractor`; each model is downloaded by Windows on first use. |
 | `SkillStore.cs`, `Store.cs` | Skills folder under `LocalState\skills`; atomic key→JSON file store for page data. |
 | `Models.cs`, `MainWindow.xaml.cs` | DTOs and the bridge dispatcher. |
@@ -64,7 +79,7 @@ cd windows-local-ai-apps
 .\scripts\build-app.ps1 -App LocalMindApp
 ```
 
-It creates a self-signed certificate if needed and writes two files: `dist\LocalMindApp\LocalMindApp_1.2.0.0_x64.msix` and `dist\LocalMindApp\LocalMindApp.cer`. A warning about `mspdbcmf.exe` is harmless.
+It creates a self-signed certificate if needed and writes two files: `dist\LocalMindApp\LocalMindApp_1.2.1.0_x64.msix` and `dist\LocalMindApp\LocalMindApp.cer`. A warning about `mspdbcmf.exe` is harmless.
 
 **4. Trust the certificate** (PowerShell **as administrator**, once per PC)
 
@@ -75,7 +90,7 @@ Import-Certificate -FilePath .\dist\LocalMindApp\LocalMindApp.cer -CertStoreLoca
 **5. Install**
 
 ```powershell
-Add-AppxPackage -Path .\dist\LocalMindApp\LocalMindApp_1.2.0.0_x64.msix
+Add-AppxPackage -Path .\dist\LocalMindApp\LocalMindApp_1.2.1.0_x64.msix
 ```
 
 **6. Launch** it from the Start menu (**LocalMind by Dyabi**) or:
