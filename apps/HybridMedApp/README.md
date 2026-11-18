@@ -2,6 +2,8 @@
 
 A **hybrid pipeline** demo for lab-result triage: a local stage on the device, then a cloud stage **only if you configure one**.
 
+![HybridMed: the app on a Copilot+ PC](../../docs/screenshots/HybridMedApp.png)
+
 ## How it works
 
 ```mermaid

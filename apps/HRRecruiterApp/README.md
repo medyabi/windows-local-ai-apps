@@ -2,6 +2,8 @@
 
 An on-device recruiting copilot: create a role from a job description, drop résumés, and get an **evidence-backed fit assessment** per candidate.
 
+![HR Recruiter Agent: the app on a Copilot+ PC](../../docs/screenshots/HRRecruiterApp.png)
+
 ## How it works
 
 ```mermaid

@@ -2,6 +2,8 @@
 
 An on-device retail **shelf-execution** assistant. The UI is a React web app; the native shell gives it on-device image description and text generation.
 
+![AI Shelf Auditor: the app on a Copilot+ PC](../../docs/screenshots/AIShelfAuditorApp.png)
+
 ## How it works
 
 ```mermaid

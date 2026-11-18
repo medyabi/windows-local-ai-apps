@@ -2,6 +2,8 @@
 
 On-device **proof-of-execution** verification: for each case it cross-checks the invoice against the purchase order and the delivery / execution evidence, flags exposure, and detects evidence reused across claims.
 
+![POE Verification Analyst: the app on a Copilot+ PC](../../docs/screenshots/POEVerificationApp.png)
+
 ## How it works
 
 ```mermaid

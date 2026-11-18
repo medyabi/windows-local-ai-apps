@@ -2,6 +2,8 @@
 
 A private **ChatGPT-style assistant that runs entirely on the PC**: streaming chat, conversation branches, memory, files (RAG), assistants and projects, built-in tools, skills, and on-device image features. Powered by Phi Silica; works offline.
 
+![LocalMind: the app on a Copilot+ PC](../../docs/screenshots/LocalMindApp.png)
+
 ## How it works
 
 ```mermaid

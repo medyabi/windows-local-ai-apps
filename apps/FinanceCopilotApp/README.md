@@ -2,6 +2,8 @@
 
 Drop a customer's **bank statement (CSV)**, a **payslip / credit report (PDF)** and an **ID scan (image)**. The app builds a financial profile (income, expenses, savings, debt-to-income, anomalies) and lets you ask questions about it. The language model runs on the PC.
 
+![Finance Copilot: the app on a Copilot+ PC](../../docs/screenshots/FinanceCopilotApp.png)
+
 ## How it works
 
 ```mermaid

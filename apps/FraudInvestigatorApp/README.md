@@ -2,6 +2,8 @@
 
 An on-device fraud / AML investigation assistant. Load transactions and customer profiles, see risk scores and a transaction graph, open a case, and ask questions against your **policy documents**. The language model and the policy index run on the PC.
 
+![Local Fraud Investigator: the app on a Copilot+ PC](../../docs/screenshots/FraudInvestigatorApp.png)
+
 ## How it works
 
 ```mermaid

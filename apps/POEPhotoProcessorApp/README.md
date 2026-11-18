@@ -2,6 +2,8 @@
 
 Processes event photos for proof-of-execution packs: **blurs the faces of other people** (not yours, via a reference selfie), **overlays EXIF date/time and location**, adds an **AI caption**, and exports a ZIP. It is a native rewrite of an earlier demo that talked to Foundry Local.
 
+![POE Photo Processor: the app on a Copilot+ PC](../../docs/screenshots/POEPhotoProcessorApp.png)
+
 ## How it works
 
 ```mermaid
