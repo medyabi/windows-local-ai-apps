@@ -4,6 +4,21 @@ Processes event photos for proof-of-execution packs: **blurs the faces of other 
 
 ![POE Photo Processor: the app on a Copilot+ PC](../../docs/screenshots/POEPhotoProcessorApp.png)
 
+## What it does
+
+**Who it's for:** marketing and field teams who must prove an event happened: proof of execution (POE) for a brand, a sponsor or an auditor.
+
+**The problem:** event photos show attendees who never agreed to appear in a report, and auditors want to see **when** and **where** each photo was taken.
+
+**With the app:**
+1. Upload **your selfie**, so your own face is never blurred.
+2. Drop the **event photos** (JPG, PNG, HEIC).
+3. Click **Process All**: other people's faces are **blurred or pixelated**, and the **date, time and GPS location** from the photo's EXIF data are stamped on it.
+4. Each photo gets an **AI caption**, with a before/after preview.
+5. Download one photo or **the whole set as a ZIP**.
+
+**Network:** captions run on the device, but this app loads some libraries from a CDN and uses OpenStreetMap to turn GPS coordinates into place names.
+
 ## How it works
 
 ```mermaid

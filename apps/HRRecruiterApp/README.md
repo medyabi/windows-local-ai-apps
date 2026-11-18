@@ -4,6 +4,21 @@ An on-device recruiting copilot: create a role from a job description, drop rés
 
 ![HR Recruiter Agent: the app on a Copilot+ PC](../../docs/screenshots/HRRecruiterApp.png)
 
+## What it does
+
+**Who it's for:** recruiters and hiring managers.
+
+**The problem:** screening résumés against a job description is repetitive, and résumés are personal data you shouldn't paste into a public chatbot.
+
+**With the app:**
+- Create a **role** from a job description (PDF).
+- Drop the **résumés**. Each candidate gets a **fit assessment** with **evidence quotes** from the résumé, so you see *why*, not only a score.
+- Get suggested **interview questions** and spot **duplicate** applications.
+- Ask the **Recruiting Copilot**: *"Why is this candidate ranked lower?"*
+- A **Responsible AI** page explains what the AI does and doesn't decide.
+
+**On the device:** analysis and chat run on the PC. The only network feature is the optional *fetch a job posting from a URL*.
+
 ## How it works
 
 ```mermaid

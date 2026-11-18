@@ -4,6 +4,21 @@ On-device **proof-of-execution** verification: for each case it cross-checks the
 
 ![POE Verification Analyst: the app on a Copilot+ PC](../../docs/screenshots/POEVerificationApp.png)
 
+## What it does
+
+**Who it's for:** finance, procurement and audit teams who pay suppliers for work that must be proven.
+
+**The problem:** a supplier sends a purchase order, an invoice and "proof" that the work was done. Checking that the three agree, and that the same photo isn't reused for several claims, is slow and easy to get wrong.
+
+**With the app:**
+- Open a **New Case**, name the supplier and drop the **PO**, the **invoice** and the **proof of execution** (PDFs).
+- **Extract & Verify** builds a **verification matrix**: quantities and amounts across the three documents, with every mismatch flagged.
+- The dashboard shows the **potential exposure** (in €) and the cases that need review.
+- **Search for reused evidence** finds the same proof used in other claims. **Analyze photos** estimates quantities from delivery photos.
+- Ask the **Investigation Copilot** about the case.
+
+**On the device:** extraction, checks and the copilot run on the PC: *0 external calls, 0 bytes uploaded*.
+
 ## How it works
 
 ```mermaid

@@ -5,6 +5,20 @@ A human-in-the-loop **radiology reading-room prototype**: prioritised worklist, 
 > **Not a medical device. Never use for diagnosis.**
 > The AI findings (regions, bounding boxes, confidence) are **pre-authored demo data** in `www/data.js`, standing in for a detection model that does not exist on the device. What is genuinely generated on the PC is the narrative: the image description and the **draft impression** (Phi Silica), grounded in that structured data.
 
+## What it does
+
+**Who it's for:** radiology teams and partners exploring what a **human-in-the-loop** reading room could look like with on-device AI.
+
+**The problem:** radiologists juggle a worklist, images, prior studies and a written report, under time pressure, and patient images are highly sensitive.
+
+**With the app:**
+- A **prioritised worklist** of studies.
+- An **image viewer** with two layers: the AI's findings and the radiologist's annotations. Compare with a **prior study**.
+- An **AI-drafted impression** that the radiologist **edits and signs**. The human always decides.
+- **Import** a DICOM study.
+
+**Important:** this is a **prototype, not a medical device**. The AI findings are pre-authored demo data. What really runs on the PC is the narrative: the image description and the draft impression (Phi Silica).
+
 ## How it works
 
 ```mermaid

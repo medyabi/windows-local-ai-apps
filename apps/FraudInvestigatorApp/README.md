@@ -4,6 +4,21 @@ An on-device fraud / AML investigation assistant. Load transactions and customer
 
 ![Local Fraud Investigator: the app on a Copilot+ PC](../../docs/screenshots/FraudInvestigatorApp.png)
 
+## What it does
+
+**Who it's for:** fraud and anti-money-laundering (AML) investigators.
+
+**The problem:** an investigation means thousands of transactions, customer profiles and a policy manual. The data is confidential, and you need to explain every decision.
+
+**With the app:**
+- Load a **transactions CSV** and, optionally, a **customer profiles CSV** (or **Load demo dataset**).
+- Each customer gets a **risk score**. A **transaction graph** shows who pays whom.
+- Search in plain language: *"transactions above €10,000 to newly created beneficiaries"*, or use ready-made patterns such as fan-in / mule accounts or rapid follow-on transfers.
+- Open a **case**, ask the **Investigation Copilot** about the evidence, and generate the case report.
+- The **Policy Library** indexes your policy documents on the PC, so the copilot can answer *"what does our policy say about…?"*
+
+**On the device:** the language model and the policy index run on the PC. Transactions and policies stay on it.
+
 ## How it works
 
 ```mermaid

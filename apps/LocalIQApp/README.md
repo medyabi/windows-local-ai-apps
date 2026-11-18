@@ -2,6 +2,21 @@
 
 **Ask your files anything.** Documents, PDFs, notes, images and code are indexed on the PC and answered with citations by on-device Phi Silica. Works offline. (It supersedes an earlier "Offline Spec Sheet Q&A" app.)
 
+## What it does
+
+**Who it's for:** anyone with a folder full of documents who wants answers, not search results.
+
+**The problem:** the answer is somewhere in your PDFs, Word files, spreadsheets, notes or photos, and a normal search only finds file names and exact words.
+
+**With the app:**
+- Add a **folder** to the library. LocalIQ indexes PDFs, Office files, notes, images and code on the PC.
+- **Ask a question** in plain language.
+- The answer comes with **citations**. Open a source to see the **highlighted line** it came from.
+- LocalIQ **checks the numbers and citations** in the answer against the text it retrieved, and refuses when the files don't contain the answer.
+- Turn on photo descriptions to include images that have no text.
+
+**On the device:** indexing and answering run on the PC, and it works **offline**.
+
 ## How it works
 
 ```mermaid

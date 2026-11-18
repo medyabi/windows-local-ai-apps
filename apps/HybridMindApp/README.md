@@ -6,6 +6,22 @@
 
 > **Tested against a mock server only**, never against a real cloud service. Treat the cloud routing and the cloud agent as unproven until you try them with your own endpoint.
 
+## What it does
+
+**Who it's for:** people who want a private assistant by default, with the power of a cloud model **only when they choose it**.
+
+**The problem:** an on-device model is private and free, but smaller. A cloud model is stronger, but your data leaves the PC.
+
+**With the app:**
+- Everything **LocalMind** does: chat, assistants, projects, memory, files, skills, images.
+- A **router** with three modes: **Auto** (on-device first, cloud only when needed), **On-device** and **Cloud**.
+- The cloud is **your own** endpoint (Azure OpenAI or any OpenAI-compatible service), shown in the footer, for example *gpt-5.4*.
+- Before anything goes to the cloud, you get a **consent dialog**, and personal details such as e-mail addresses are **redacted**.
+- An **agent mode** can carry out multi-step tasks.
+- **Cloud usage** in Settings shows what was sent.
+
+**Without cloud settings** it behaves exactly like LocalMind.
+
 ## How it works
 
 ```mermaid

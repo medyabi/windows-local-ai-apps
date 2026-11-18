@@ -4,6 +4,22 @@ A **hybrid pipeline** demo for lab-result triage: a local stage on the device, t
 
 ![HybridMed: the app on a Copilot+ PC](../../docs/screenshots/HybridMedApp.png)
 
+## What it does
+
+**Who it's for:** anyone who wants to see a **hybrid AI pattern** in a sensitive field, here lab-result triage.
+
+**The problem:** a cloud model can apply richer logic, but raw patient data (names, dates of birth, identifiers) must not leave the device.
+
+**With the app:**
+1. Drop a **patient file** (lab report, discharge summary, notes) or click **Load demo patient**, and describe the symptoms.
+2. **On the device**, Phi Silica reads the raw text and turns it into **structured JSON**.
+3. A **privacy gate** keeps the identifiers on the PC. Only the sanitised JSON may cross.
+4. **Optionally**, your own **Azure AI Foundry** model receives that JSON and returns triage guidance.
+
+The right-hand panel shows each stage as it runs, so you can see exactly what stayed local and what went to the cloud.
+
+**Without cloud settings**, only the local stage runs. This is a **demo, not a medical device**.
+
 ## How it works
 
 ```mermaid

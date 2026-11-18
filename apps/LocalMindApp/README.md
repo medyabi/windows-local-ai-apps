@@ -4,6 +4,20 @@ A private **ChatGPT-style assistant that runs entirely on the PC**: streaming ch
 
 ![LocalMind: the app on a Copilot+ PC](../../docs/screenshots/LocalMindApp.png)
 
+## What it does
+
+**Who it's for:** anyone who wants a ChatGPT-style assistant that's **private by design**.
+
+**The problem:** public chatbots are useful, but everything you type leaves your PC.
+
+**With the app:**
+- **Chat** with streaming answers, edit a message to create a **branch**, and search past chats.
+- Ready-made **assistants**: Writer, Coder, Tutor, Translator, Document analyst. **Projects** group chats with shared instructions and files.
+- **Memory** remembers what you ask it to. **Files** let you chat with your documents (RAG).
+- **Skills**, **/ commands** and built-in tools, plus on-device **image** features.
+
+**On the device:** everything runs on Phi Silica on the PC. It works **offline**, and nothing is sent to the cloud.
+
 ## How it works
 
 ```mermaid

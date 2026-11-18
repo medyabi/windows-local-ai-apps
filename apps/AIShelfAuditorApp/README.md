@@ -4,6 +4,20 @@ An on-device retail **shelf-execution** assistant. The UI is a React web app; th
 
 ![AI Shelf Auditor: the app on a Copilot+ PC](../../docs/screenshots/AIShelfAuditorApp.png)
 
+## What it does
+
+**Who it's for:** retail field teams and store managers who check that shelves look the way the brand agreed: right products, right place, nothing missing.
+
+**The problem:** a shelf audit means photos, notes and a report for every aisle in every store. It's slow, and shelf photos often can't leave the company.
+
+**With the app:**
+- Start a **New Shelf Audit** and add a photo of the shelf. The on-device model **describes what it sees**.
+- Each audit gets a **score** and a list of **issues**, flagged as *Good*, *Needs attention* or *Needs review*.
+- The **dashboard** shows today's audits, the issues found, high-priority items and the average shelf score, across all your stores.
+- **Store tasks** and **analytics** turn the findings into follow-up work.
+
+**On the device:** image description and text generation run on the PC's NPU. Shelf photos aren't sent to a cloud service.
+
 ## How it works
 
 ```mermaid

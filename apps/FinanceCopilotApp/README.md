@@ -4,6 +4,22 @@ Drop a customer's **bank statement (CSV)**, a **payslip / credit report (PDF)** 
 
 ![Finance Copilot: the app on a Copilot+ PC](../../docs/screenshots/FinanceCopilotApp.png)
 
+## What it does
+
+**Who it's for:** credit analysts and bank advisors who review a customer file before a loan or a credit decision.
+
+**The problem:** a customer file mixes a bank statement, a payslip and an ID scan. Reading them, adding up income and expenses and spotting what looks wrong takes time, and these documents are among the most sensitive a bank holds.
+
+**With the app:**
+- Drop the **bank statement (CSV)**, the **payslip or credit report (PDF)** and the **ID scan (image)**, or click **Load demo customer**.
+- The app builds a **financial profile**: income, expenses, savings, debt-to-income ratio and **anomalies**.
+- The on-device model writes a **narrative**, the questions an analyst should ask, and the next steps.
+- Then you **chat** with the file: *"Why is the debt-to-income ratio high?"*
+
+**Why you can trust the numbers:** every figure is **computed by code**, not by the AI. The model only puts them into words.
+
+**On the device:** parsing, OCR and the language model all run on the PC. The documents never leave it.
+
 ## How it works
 
 ```mermaid
